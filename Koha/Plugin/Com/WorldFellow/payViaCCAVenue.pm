@@ -78,12 +78,15 @@ sub opac_online_payment_begin {
     my $patron = scalar Koha::Patrons->find($borrowernumber);
 
     my $token = "B" . $borrowernumber . "T" . time;
+    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     C4::Context->dbh->do(
-        q{
-        INSERT INTO payViaCCAVenue ( token, borrowernumber )
+        qq{
+        INSERT INTO table ( token, borrowernumber )
         VALUES ( ?, ? )
     }, undef, $token, $borrowernumber
     );
+
+     
 
     # my $rs = Koha::Database->new()->schema()->resultset('Accountline');
     # my @accountlines = map { $rs->find($_) } @accountline_ids;
@@ -175,7 +178,8 @@ sub opac_online_payment_end {
     my $order_amount =$params{mer_amount};
 
     my $dbh      = C4::Context->dbh;
-    my $query    = "SELECT * FROM payViaCCAVenue WHERE token = ?";
+    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+    my $query    = "SELECT * FROM $table WHERE token = ?";
     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
 
     my $accountlines = [ split( ',', $accountline_ids ) ];
@@ -200,11 +204,11 @@ sub opac_online_payment_end {
                 my $schema = Koha::Database->new->schema;
 
                 my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
-
+                my $table = $self->get_qualified_table_name('pay_via_ccavenue');
                 $schema->txn_do(
                     sub {
                         $dbh->do(
-                            "DELETE FROM payViaCCAVenue WHERE token = ?",
+                            "DELETE FROM $table WHERE token = ?",
                             undef, $token
                         );
 
@@ -286,8 +290,9 @@ sub configure {
 sub install {
    my ( $self, $args ) = @_;
     try {
+        my $table = $self->get_qualified_table_name('pay_via_ccavenue');
         C4::Context->dbh->do(qq{
-            CREATE TABLE IF NOT EXISTS payViaCCAVenue
+            CREATE TABLE IF NOT EXISTS $table
             (
                 token          VARCHAR(128),
                 created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -302,7 +307,7 @@ sub install {
         });
         	
     } catch {
-        warn "Error installing PayPal plugin, caught error: $_";
+        warn "Error installing CCAVenue plugin, caught error: $_";
         return 0;
     };
 
@@ -310,13 +315,11 @@ sub install {
 }
 
 sub uninstall() {
-    my $dbh = C4::Context->dbh();
+   my ( $self, $args ) = @_;
 
-    my $query = q{
-        DROP TABLE IF EXISTS payViaCCAVenue;
-    };
+    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
 
-    return $dbh->do($query);
+    return C4::Context->dbh->do("DROP TABLE IF EXISTS $table");
 }
 
 # Encryption Function
