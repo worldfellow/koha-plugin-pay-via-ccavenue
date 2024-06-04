@@ -158,19 +158,18 @@ sub opac_online_payment_end {
         }
     );
     my $encResp = $cgi->param("encResp"); 
-    my @plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
+    my $plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
-    my $params = split('&', @plainText[0]);
+    my @params = split('&', $plainText);
     
+    my $borrowernumber = $params[0]{merchant_param1};
+    my $accountline_ids = $params[0]{merchant_param2};
+    my $token = $params[0]{merchant_param3};
 
-    my $borrowernumber = $params.merchant_param1;
-    my $accountline_ids = $params.merchant_param2;
-    my $token = $params.merchant_param3;
-
-    my $transaction_status = $params.order_status;
-    my $transaction_id = $params.tracking_id;
+    my $transaction_status = $params[0]{order_status};
+    my $transaction_id = $params[0]{tracking_id};
     # my $transaction_result_message = $vars{transactionResultMessage};
-    my $order_amount = $params.mer_amount;
+    my $order_amount =$params[0]{mer_amount};
 
     my $dbh      = C4::Context->dbh;
     my $query    = "SELECT * FROM payViaCCAVenue WHERE token = ?";
