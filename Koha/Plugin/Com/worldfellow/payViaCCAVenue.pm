@@ -12,7 +12,7 @@ use C4::Auth qw(get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
 use List::Util qw(sum);
-use URI::Encode qw(uri_encode uri_decode);
+use Encode qw(uri_encode uri_decode);
 use Time::HiRes qw(gettimeofday);
 ## Here we set our plugin version
 our $VERSION = "1.0.0";
