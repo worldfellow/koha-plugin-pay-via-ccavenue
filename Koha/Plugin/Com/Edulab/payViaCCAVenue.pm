@@ -1,4 +1,4 @@
-package Koha::Plugin::Com::WorldFellow::PayViaCCAVenue;
+package Koha::Plugin::Com::Edulab::PayViaCCAVenue;
 
 use Modern::Perl;
 
