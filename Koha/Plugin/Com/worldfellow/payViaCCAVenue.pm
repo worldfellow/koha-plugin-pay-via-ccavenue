@@ -12,7 +12,7 @@ use C4::Auth qw(get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
 use List::Util qw(sum);
-use URI::Encode qw(uri_encode uri_decode);
+use URI::Escape qw(uri_escape uri_unescape);
 use Time::HiRes qw(gettimeofday);
 ## Here we set our plugin version
 our $VERSION = "1.0.0";
@@ -98,29 +98,29 @@ sub opac_online_payment_begin {
 
     my $requestParams = "";
     $requestParams = $requestParams."merchant_id=";
-    $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
+    $requestParams = $requestParams.uri_escape($self->retrieve_data('merchant_id'))."&";
     $requestParams = $requestParams."order_number=";
-    $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
+    $requestParams = $requestParams.uri_escape($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
-    $requestParams = $requestParams.uri_encode($active_currency)."&";
+    $requestParams = $requestParams.uri_escape($active_currency)."&";
     $requestParams = $requestParams."amount=";
-    $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
+    $requestParams = $requestParams.uri_escape($amount_to_pay)."&";
     $requestParams = $requestParams."merchant_param1=";
-    $requestParams = $requestParams.uri_encode($patron->id)."&";
+    $requestParams = $requestParams.uri_escape($patron->id)."&";
     $requestParams = $requestParams."merchant_param2=";
-    $requestParams = $requestParams.uri_encode(join( ',', map { $_->id } @accountlines ))."&";
+    $requestParams = $requestParams.uri_escape(join( ',', map { $_->id } @accountlines ))."&";
     $requestParams = $requestParams."merchant_param3=";
-    $requestParams = $requestParams.uri_encode($token)."&";
+    $requestParams = $requestParams.uri_escape($token)."&";
     $requestParams = $requestParams."merchant_param4=";
-    $requestParams = $requestParams.uri_encode($patron->cardnumber)."&";
+    $requestParams = $requestParams.uri_escape($patron->cardnumber)."&";
     $requestParams = $requestParams."merchant_param5=";
-    $requestParams = $requestParams.uri_encode($patron->email)."&";
+    $requestParams = $requestParams.uri_escape($patron->email)."&";
     $requestParams = $requestParams."redirectUrl=";
-    $requestParams = $requestParams.uri_encode($redirect_url)."&";
+    $requestParams = $requestParams.uri_escape($redirect_url)."&";
     $requestParams = $requestParams."cancel_url=";
-    $requestParams = $requestParams.uri_encode($cancel_url)."&";
+    $requestParams = $requestParams.uri_escape($cancel_url)."&";
     $requestParams = $requestParams."language=";
-    $requestParams = $requestParams.uri_encode('en')."&";
+    $requestParams = $requestParams.uri_escape('en')."&";
 
 
 
