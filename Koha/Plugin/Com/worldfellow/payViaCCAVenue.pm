@@ -82,8 +82,8 @@ sub opac_online_payment_begin {
     }, undef, $token, $borrowernumber
     );
 
-    my $rs = Koha::Database->new()->schema()->resultset('Accountline');
-    my @accountlines = map { $rs->find($_) } @accountline_ids;
+    # my $rs = Koha::Database->new()->schema()->resultset('Accountline');
+    # my @accountlines = map { $rs->find($_) } @accountline_ids;
 
     my $amount_to_pay = 0;
     
@@ -106,13 +106,13 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."amount=";
     $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams."merchant_param1=";
-    $requestParams = $requestParams.uri_encode($spatron->id)."&";
+    $requestParams = $requestParams.uri_encode($patron->id)."&";
     $requestParams = $requestParams."merchant_param2=";
     $requestParams = $requestParams.uri_encode(join( ',', map { $_->id } @accountlines ))."&";
     $requestParams = $requestParams."merchant_param3=";
     $requestParams = $requestParams.uri_encode($token)."&";
     $requestParams = $requestParams."merchant_param4=";
-    $requestParams = $requestParams.uri_encode($spatron->cardnumber)."&";
+    $requestParams = $requestParams.uri_encode($patron->cardnumber)."&";
     $requestParams = $requestParams."merchant_param5=";
     $requestParams = $requestParams.uri_encode($patron->email)."&";
     $requestParams = $requestParams."redirectUrl=";
@@ -158,9 +158,9 @@ sub opac_online_payment_end {
         }
     );
     my $encResp = $cgi->param("encResp"); 
-    my $plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
+    my @plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
-    my $params = split('&', $plainText[0]);
+    my $params = split('&', @plainText[0]);
     
 
     my $borrowernumber = $params.merchant_param1;
