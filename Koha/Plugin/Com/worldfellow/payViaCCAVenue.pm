@@ -160,7 +160,7 @@ sub opac_online_payment_end {
     my $encResp = $cgi->param("encResp"); 
     my @plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
-    my %params = split('&', @plainText[0]);
+    my %params = split('&', $plainText[0]);
     
     my $borrowernumber = $params{merchant_param1};
     my $accountline_ids = $params{merchant_param2};
