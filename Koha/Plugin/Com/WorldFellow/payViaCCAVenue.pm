@@ -286,7 +286,7 @@ sub configure {
 sub install() {
     my $dbh = C4::Context->dbh();
 
-    my $query = q{
+    my $query = qq{
 		CREATE TABLE IF NOT EXISTS payViaCCAVenue
 		  (
 			 token          VARCHAR(128),
