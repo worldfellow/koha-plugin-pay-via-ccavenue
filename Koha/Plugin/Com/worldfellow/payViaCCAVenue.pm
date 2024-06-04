@@ -170,7 +170,7 @@ sub opac_online_payment_end {
     my $transaction_status = $params.order_status;
     my $transaction_id = $params.tracking_id;
     # my $transaction_result_message = $vars{transactionResultMessage};
-    my $order_amount = sprintf("%.2f",  $params.mer_amount / 100 );
+    my $order_amount = $params.mer_amount;
 
     my $dbh      = C4::Context->dbh;
     my $query    = "SELECT * FROM payViaCCAVenue WHERE token = ?";
