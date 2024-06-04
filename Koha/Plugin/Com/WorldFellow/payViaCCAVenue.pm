@@ -283,25 +283,30 @@ sub configure {
     }
 }
 
-sub install() {
-    my $dbh = C4::Context->dbh();
-
-    my $query = qq{
-		CREATE TABLE IF NOT EXISTS payViaCCAVenue
-		  (
-			 token          VARCHAR(128),
-			 created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			 borrowernumber INT(11) NOT NULL,
-			 PRIMARY KEY (token),
-			 CONSTRAINT token_bn FOREIGN KEY (borrowernumber) REFERENCES borrowers (
-			 borrowernumber ) ON DELETE CASCADE ON UPDATE CASCADE
-		  )
-		ENGINE=innodb
-		DEFAULT charset=utf8mb4
-		COLLATE=utf8mb4_unicode_ci;
+sub install {
+   my ( $self, $args ) = @_;
+    try {
+        C4::Context->dbh->do(qq{
+            CREATE TABLE IF NOT EXISTS payViaCCAVenue
+            (
+                token          VARCHAR(128),
+                created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                borrowernumber INT(11) NOT NULL,
+                PRIMARY KEY (token),
+                CONSTRAINT token_bn FOREIGN KEY (borrowernumber) REFERENCES borrowers (
+                borrowernumber ) ON DELETE CASCADE ON UPDATE CASCADE
+            )
+            ENGINE=innodb
+            DEFAULT charset=utf8mb4
+            COLLATE=utf8mb4_unicode_ci;
+        });
+        	
+    } catch {
+        warn "Error installing PayPal plugin, caught error: $_";
+        return 0;
     };
 
-     return $dbh->do($query);
+   return 1;
 }
 
 sub uninstall() {
