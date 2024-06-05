@@ -78,10 +78,9 @@ sub opac_online_payment_begin {
     my $patron = scalar Koha::Patrons->find($borrowernumber);
 
     my $token = "B" . $borrowernumber . "T" . time;
-    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     C4::Context->dbh->do(
-        qq{
-        INSERT INTO table ( token, borrowernumber )
+        q{
+        INSERT INTO pay_via_ccavenue ( token, borrowernumber )
         VALUES ( ?, ? )
     }, undef, $token, $borrowernumber
     );
@@ -178,8 +177,7 @@ sub opac_online_payment_end {
     my $order_amount =$params{mer_amount};
 
     my $dbh      = C4::Context->dbh;
-    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-    my $query    = "SELECT * FROM $table WHERE token = ?";
+    my $query    = "SELECT * FROM pay_via_ccavenue WHERE token = ?";
     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
 
     my $accountlines = [ split( ',', $accountline_ids ) ];
@@ -204,11 +202,10 @@ sub opac_online_payment_end {
                 my $schema = Koha::Database->new->schema;
 
                 my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
-                my $table = $self->get_qualified_table_name('pay_via_ccavenue');
                 $schema->txn_do(
                     sub {
                         $dbh->do(
-                            "DELETE FROM $table WHERE token = ?",
+                            "DELETE FROM pay_via_ccavenue WHERE token = ?",
                             undef, $token
                         );
 
@@ -289,8 +286,8 @@ sub configure {
 
 sub install {
     try{
-        return C4::Context->dbh->do(
-            "CREATE TABLE IF NOT EXISTS pay_via_ccavenue(
+        return C4::Context->dbh->do(q{
+            CREATE TABLE IF NOT EXISTS pay_via_ccavenue(
                 token          VARCHAR(128),
                 created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 borrowernumber INT(11) NOT NULL,
@@ -299,9 +296,10 @@ sub install {
                 borrowernumber ) ON DELETE CASCADE ON UPDATE CASCADE
             )ENGINE=innodb
             DEFAULT charset=utf8mb4
-            COLLATE=utf8mb4_unicode_ci;"
-        );
+            COLLATE=utf8mb4_unicode_ci;
+        });
         	
+
     } catch {
         warn "Error installing CCAVenue plugin, caught error: $_";
         return 0;
@@ -311,9 +309,7 @@ sub install {
 sub uninstall() {
    my ( $self, $args ) = @_;
 
-    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-
-    return C4::Context->dbh->do("DROP TABLE IF EXISTS $table");
+    return C4::Context->dbh->do(q{DROP TABLE IF EXISTS pay_via_ccavenue});
 }
 
 # Encryption Function
