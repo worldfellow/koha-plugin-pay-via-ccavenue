@@ -285,9 +285,12 @@ sub configure {
 }
 
 sub install {
+     my ( $self, $args ) = @_;
     try{
-        return C4::Context->dbh->do("
-            CREATE TABLE IF NOT EXISTS pay_via_ccavenue(
+        my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+
+        return C4::Context->dbh->do(qq{
+            CREATE TABLE IF NOT EXISTS $table(
                 token          VARCHAR(128),
                 created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 borrowernumber INT(11) NOT NULL,
@@ -297,7 +300,7 @@ sub install {
             )ENGINE=innodb
             DEFAULT charset=utf8mb4
             COLLATE=utf8mb4_unicode_ci;
-        ");
+        });
         	
 
     } catch {
@@ -308,8 +311,8 @@ sub install {
 
 sub uninstall() {
    my ( $self, $args ) = @_;
-
-    return C4::Context->dbh->do("DROP TABLE IF EXISTS pay_via_ccavenue");
+    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+    return C4::Context->dbh->do(qq{DROP TABLE IF EXISTS $table});
 }
 
 # Encryption Function
