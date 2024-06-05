@@ -101,9 +101,9 @@ sub opac_online_payment_begin {
         $amount_to_pay = $amount_to_pay + $a->amountoutstanding;
     }
 
-    my $redirect_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl?payment_method=Koha::Plugin::Com::Edulab::PayViaCCAVenue";
+    my $redirect_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl?payment_method=Koha::Plugin::Com::WorldFellow::PayViaCCAVenue";
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
-    my $cancel_url = C4::Context->preference('OPACBaseURL')."/cgi-bin/koha/opac-account.pl";
+    my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
 
     my $requestParams = "";
