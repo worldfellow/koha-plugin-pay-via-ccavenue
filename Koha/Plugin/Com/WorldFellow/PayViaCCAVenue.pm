@@ -126,7 +126,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams.uri_escape($patron->cardnumber)."&";
     $requestParams = $requestParams."merchant_param5=";
     $requestParams = $requestParams.uri_escape($patron->email)."&";
-    $requestParams = $requestParams."redirectUrl=";
+    $requestParams = $requestParams."redirect_url=";
     $requestParams = $requestParams.uri_escape($redirect_url)."&";
     $requestParams = $requestParams."cancel_url=";
     $requestParams = $requestParams.uri_escape($cancel_url)."&";
