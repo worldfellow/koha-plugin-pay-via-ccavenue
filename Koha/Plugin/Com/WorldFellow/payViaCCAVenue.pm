@@ -287,39 +287,25 @@ sub configure {
     }
 }
 
-sub install {
-   my ( $self, $args ) = @_;
-    try {
-        my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-        C4::Context->dbh->do(qq{
-            CREATE TABLE IF NOT EXISTS $table
-            (
-                token          VARCHAR(128),
-                created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                borrowernumber INT(11) NOT NULL,
-                PRIMARY KEY (token),
-                CONSTRAINT token_bn FOREIGN KEY (borrowernumber) REFERENCES borrowers (
-                borrowernumber ) ON DELETE CASCADE ON UPDATE CASCADE
-            )
-            ENGINE=innodb
-            DEFAULT charset=utf8mb4
-            COLLATE=utf8mb4_unicode_ci;
-        });
-        	
-    } catch {
-        warn "Error installing CCAVenue plugin, caught error: $_";
-        return 0;
+sub install() {
+    C4::Context->dbh->do("CREATE TABLE IF NOT EXISTS pay_via_ccavenue
+		  (
+			 token          VARCHAR(128),
+			 created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			 borrowernumber INT(11) NOT NULL,
+			 PRIMARY KEY (token),
+			 CONSTRAINT token_bn FOREIGN KEY (borrowernumber) REFERENCES borrowers (
+			 borrowernumber ) ON DELETE CASCADE ON UPDATE CASCADE
+		  )
+		ENGINE=innodb
+		DEFAULT charset=utf8mb4
+		COLLATE=utf8mb4_unicode_ci");
     };
-
-   return 1;
+    return 1;
 }
 
 sub uninstall() {
-   my ( $self, $args ) = @_;
-
-    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-
-    return C4::Context->dbh->do("DROP TABLE IF EXISTS $table");
+   return 1;
 }
 
 # Encryption Function
