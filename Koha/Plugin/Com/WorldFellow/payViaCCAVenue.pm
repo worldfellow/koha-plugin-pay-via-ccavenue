@@ -77,10 +77,11 @@ sub opac_online_payment_begin {
 
     my $patron = scalar Koha::Patrons->find($borrowernumber);
 
-    my $token = "B" . $borrowernumber . "T" . time;
+    my $token = "B" . $borrowernumber . "T" . time
+    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     C4::Context->dbh->do(
-        q{
-        INSERT INTO pay_via_ccavenue ( token, borrowernumber )
+        qq{
+        INSERT INTO $table ( token, borrowernumber )
         VALUES ( ?, ? )
     }, undef, $token, $borrowernumber
     );
@@ -175,9 +176,9 @@ sub opac_online_payment_end {
     my $transaction_id = $params{tracking_id};
     # my $transaction_result_message = $vars{transactionResultMessage};
     my $order_amount =$params{mer_amount};
-
+    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     my $dbh      = C4::Context->dbh;
-    my $query    = "SELECT * FROM pay_via_ccavenue WHERE token = ?";
+    my $query    = "SELECT * FROM $table WHERE token = ?";
     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
 
     my $accountlines = [ split( ',', $accountline_ids ) ];
@@ -202,10 +203,11 @@ sub opac_online_payment_end {
                 my $schema = Koha::Database->new->schema;
 
                 my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
+                my $table = $self->get_qualified_table_name('pay_via_ccavenue');
                 $schema->txn_do(
                     sub {
-                        $dbh->do(
-                            "DELETE FROM pay_via_ccavenue WHERE token = ?",
+                        $dbh->do(qq{
+                            DELETE FROM $table WHERE token = ?},
                             undef, $token
                         );
 
@@ -285,7 +287,7 @@ sub configure {
 }
 
 sub install {
-     my ( $self, $args ) = @_;
+    my ( $self, $args ) = @_;
     try{
         my $table = $self->get_qualified_table_name('pay_via_ccavenue');
 
@@ -304,13 +306,13 @@ sub install {
         	
 
     } catch {
-        warn "Error installing CCAVenue plugin, caught error: $_";
+        warn "Error installing CCAVenue plugin, caught error $_";
         return 0;
     };
 }
 
 sub uninstall() {
-   my ( $self, $args ) = @_;
+    my ( $self, $args ) = @_;
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     return C4::Context->dbh->do(qq{DROP TABLE IF EXISTS $table});
 }
