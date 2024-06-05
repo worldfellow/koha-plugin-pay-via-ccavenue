@@ -334,7 +334,7 @@ sub encrypt{
 	my $cipher = Crypt::CBC->new(
         		-key         => $key,
         		-iv          => $iv,
-        		-cipher      => 'OpenSSL::AES',
+        		-cipher      => 'opensslv1::AES',
         		-literal_key => 1,
         		-header      => "none",
         		-padding     => "standard",
@@ -357,7 +357,7 @@ sub decrypt{
 	my $cipher = Crypt::CBC->new(
         		-key         => $key,
         		-iv          => $iv,
-        		-cipher      => 'OpenSSL::AES',
+        		-cipher      => 'opensslv1::AES',
         		-literal_key => 1,
         		-header      => "none",
         		-padding     => "standard",
