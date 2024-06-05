@@ -78,7 +78,7 @@ sub opac_online_payment_begin {
     my $patron = scalar Koha::Patrons->find($borrowernumber);
 
     my $token = "B" . $borrowernumber . "T" . time;
-    
+
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     C4::Context->dbh->do(
         qq{
@@ -307,7 +307,7 @@ sub install {
         	
 
     } catch {
-        warn "Error installing CCAVenue plugin, caught error $_";
+        warn "Error installing CCAVenue plugin, caught error";
         return 0;
     };
 }
