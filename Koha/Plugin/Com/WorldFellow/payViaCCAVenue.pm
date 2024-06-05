@@ -50,8 +50,11 @@ sub new {
 
 sub opac_online_payment {
     my ( $self, $args ) = @_;
-
-    return $self->retrieve_data('enable_opac_payments') eq 'Yes';
+    try{
+        return $self->retrieve_data('enable_opac_payments') eq 'Yes';
+    }catch{
+        warn "opac online payment"
+    }
 }
 
 sub opac_online_payment_begin {
