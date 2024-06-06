@@ -20,7 +20,6 @@ our $VERSION = "1.0.0";
 use Crypt::CBC;
 use MIME::Base64;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
-use Encode qw(encode_utf8);
 use DateTime;
 
 ## Here is our metadata, some keys are required, some are optional
@@ -340,7 +339,9 @@ sub encrypt {
    	# get total number of arguments passed.
     my ( $self, $args ) = @_;
    	# my $n = scalar(@_);
-	my $key = md5($args->{working_key});
+
+	my $work_key = $args->{working_key};
+    my $key = md5($work_key);
     # my $ctx = Digest::MD5->new;
 	# my $key = $ctx->add($args->{working_key});
 	my $plainText = $args->{request_str};
@@ -366,11 +367,12 @@ sub encrypt {
 }
 
 # Decryption Function
-sub decrypt{
+sub decrypt {
    	# get total number of arguments passed.
    	# my $n = scalar(@_);
     my ( $self, $args ) = @_;
-    my $key = md5($args->{working_key});
+    my $work_key = $args->{working_key};
+    my $key = md5($work_key);
 	my $encryptedText = $args->{response_str};
 	my $iv = pack "C16", 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f;
 	
