@@ -107,6 +107,7 @@ sub opac_online_payment_begin {
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
     my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
+    warn "patron ". $patron;
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
     my $requestParams = "";
@@ -128,19 +129,19 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."billing_name=";
     $requestParams = $requestParams.uri_encode($fullname)."&";
     $requestParams = $requestParams."billing_address=";
-    $requestParams = $requestParams.uri_encode($patron->address ? $patron->address : "")."&";
+    $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_city=";
-    $requestParams = $requestParams.uri_encode($patron->city ? $patron->city : "")."&";
+    $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_state=";
-    $requestParams = $requestParams.uri_encode($patron->state ? $patron->state : "")."&";
+    $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_zip=";
-    $requestParams = $requestParams.uri_encode($patron->zipcode ? $patron->zipcode : "")."&";
+    $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_country=";
     $requestParams = $requestParams.uri_encode('India')."&";
     $requestParams = $requestParams."billing_tel=";
-    $requestParams = $requestParams.uri_encode($patron->mobile)."&";
+    $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_email=";
-    $requestParams = $requestParams.uri_encode($patron->email)."&";
+    $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."merchant_param1=";
     $requestParams = $requestParams.uri_encode($patron->id)."&";
     $requestParams = $requestParams."merchant_param2=";
@@ -152,7 +153,8 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."merchant_param5=";
     $requestParams = $requestParams.uri_encode($transaction_id)."&";
    
-    my $encrypted = $self->encrypt($self->retrieve_data('working_Key'),$requestParams);
+    my $working_key = $self->retrieve_data('working_Key');
+    my $encrypted = $self->encrypt($working_key,$requestParams);
 
     $template->param(
         borrower             => $patron,
@@ -182,7 +184,9 @@ sub opac_online_payment_end {
         }
     );
     my $encResp = $cgi->param("encResp"); 
-    my @plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
+    my $working_key = $self->retrieve_data('working_Key');
+    my @plainText = $self->decrypt($working_key,$encResp);
+
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
     my %params = split('&', $plainText[0]);
     
@@ -338,10 +342,10 @@ sub uninstall() {
 # Encryption Function
 sub encrypt{
    	# get total number of arguments passed.
-    
-   	my $n = scalar(@_);
-	my $key = md5($_[0]);
-	my $plainText = $_[1];
+    my ( $self, $working_key, $requestParams ) = @_;
+   	# my $n = scalar(@_);
+	my $key = md5($working_key);
+	my $plainText = $requestParams;
 	my $iv = pack "C16", 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f;
 	
 	my $cipher = Crypt::CBC->new(
@@ -362,9 +366,10 @@ sub encrypt{
 # Decryption Function
 sub decrypt{
    	# get total number of arguments passed.
-   	my $n = scalar(@_);
-	my $key = md5($_[0]);
-	my $encryptedText = $_[1];
+   	# my $n = scalar(@_);
+    my ( $self, $working_key, $encResp ) = @_;
+	my $key = md5($working_key);
+	my $encryptedText = $encResp;
 	my $iv = pack "C16", 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f;
 	
 	my $cipher = Crypt::CBC->new(
