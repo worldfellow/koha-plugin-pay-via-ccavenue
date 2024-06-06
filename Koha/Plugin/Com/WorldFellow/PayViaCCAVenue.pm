@@ -34,6 +34,7 @@ our $metadata = {
     version         => $VERSION,
 };
 
+our $ENABLE_DEBUGGING = 1;
 
 sub new {
     my ( $class, $args ) = @_;
@@ -174,7 +175,7 @@ sub opac_online_payment_begin {
 sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
-
+    warn "ccavenue INCOMING: " . $cgi;
     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_response.tt'),
