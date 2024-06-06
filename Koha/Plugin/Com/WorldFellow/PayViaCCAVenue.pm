@@ -151,7 +151,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."merchant_param5=";
     $requestParams = $requestParams.uri_encode($transaction_id)."&";
    
-    my $encrypted = $self->encrypt($self->retrieve_data('working_Key'),$requestParams);
+    my $encrypted = $self->encrypt({working_key => $self->retrieve_data('working_Key'), request_str => $requestParams});
 
     $template->param(
         borrower             => $patron,
@@ -181,7 +181,7 @@ sub opac_online_payment_end {
         }
     );
     my $encResp = $cgi->param("encResp"); 
-    my @plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
+    my @plainText =  $self->decrypt({working_key => $self->retrieve_data('working_Key'), request_str => $encResp});
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
     my %params = split('&', $plainText[0]);
     
@@ -335,12 +335,12 @@ sub uninstall() {
 }
 
 # Encryption Function
-sub encrypt{
+sub encrypt {
    	# get total number of arguments passed.
-   
-   	my $n = scalar(@_);
-	my $key = md5($_[0]);
-	my $plainText = $_[1];
+    my ( $self, $args ) = @_;
+   	# my $n = scalar(@_);
+	my $key = md5($args->{working_key});
+	my $plainText = $args->{request_str};
 	my $iv = pack "C16", 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f;
 	
 	my $cipher = Crypt::CBC->new(
@@ -361,9 +361,10 @@ sub encrypt{
 # Decryption Function
 sub decrypt{
    	# get total number of arguments passed.
-   	my $n = scalar(@_);
-	my $key = md5($_[0]);
-	my $encryptedText = $_[1];
+   	# my $n = scalar(@_);
+    my ( $self, $args ) = @_;
+	my $key = md5($args->{working_key});
+	my $encryptedText = $args->{request_str};
 	my $iv = pack "C16", 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f;
 	
 	my $cipher = Crypt::CBC->new(
