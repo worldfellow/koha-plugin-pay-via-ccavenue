@@ -64,6 +64,7 @@ sub opac_online_payment_begin {
     my $cgi = $self->{'cgi'};
 
     my $active_currency = Koha::Acquisition::Currencies->get_active;
+    warn "$active_currency";
 
     my ( $template, $borrowernumber ) = get_template_and_user(
         {
@@ -117,7 +118,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."order_id=";
     $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
-    $requestParams = $requestParams.uri_encode($active_currency)."&";
+    $requestParams = $requestParams.uri_encode('INR')."&";
     $requestParams = $requestParams."amount=";
     $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams."redirect_url=";
