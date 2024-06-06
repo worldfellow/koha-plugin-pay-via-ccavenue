@@ -20,7 +20,7 @@ our $VERSION = "1.0.0";
 use Crypt::CBC;
 use MIME::Base64;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
-use DateTime
+use DateTime;
 
 ## Here is our metadata, some keys are required, some are optional
 our $metadata = {
