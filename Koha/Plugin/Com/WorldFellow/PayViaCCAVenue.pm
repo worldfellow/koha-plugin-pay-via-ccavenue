@@ -108,8 +108,9 @@ sub opac_online_payment_begin {
     my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
     my $dt = DateTime->now();
-    my $transaction_id = $patron->cardnumber.'Y'.$dt->year.'M'.$dt->month.'D'.$dt->day.'T'.$dt->hour.$dt->minute.$dt->second;
+    my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
     my $requestParams = "";
+    my $fullname = $patron->firstname." ".$patron->surname;
     $requestParams = $requestParams."merchant_id=";
     $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
     $requestParams = $requestParams."order_number=";
@@ -125,15 +126,15 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."language=";
     $requestParams = $requestParams.uri_encode('EN')."&";
     $requestParams = $requestParams."billing_name=";
-    $requestParams = $requestParams.uri_encode(($patron->firstname.' '.$patron->surname))."&";
+    $requestParams = $requestParams.uri_encode($fullname)."&";
     $requestParams = $requestParams."billing_address=";
-    $requestParams = $requestParams.uri_encode($patron->address)."&";
+    $requestParams = $requestParams.uri_encode($patron->address ? $patron->address : "")."&";
     $requestParams = $requestParams."billing_city=";
-    $requestParams = $requestParams.uri_encode($patron->city)."&";
+    $requestParams = $requestParams.uri_encode($patron->city ? $patron->city : "")."&";
     $requestParams = $requestParams."billing_state=";
-    $requestParams = $requestParams.uri_encode($patron->state)."&";
+    $requestParams = $requestParams.uri_encode($patron->state ? $patron->state : "")."&";
     $requestParams = $requestParams."billing_zip=";
-    $requestParams = $requestParams.uri_encode($patron->zipcode)."&";
+    $requestParams = $requestParams.uri_encode($patron->zipcode ? $patron->zipcode : "")."&";
     $requestParams = $requestParams."billing_country=";
     $requestParams = $requestParams.uri_encode('India')."&";
     $requestParams = $requestParams."billing_tel=";
@@ -337,7 +338,7 @@ sub uninstall() {
 # Encryption Function
 sub encrypt{
    	# get total number of arguments passed.
-   
+    
    	my $n = scalar(@_);
 	my $key = md5($_[0]);
 	my $plainText = $_[1];
