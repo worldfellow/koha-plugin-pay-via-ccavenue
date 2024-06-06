@@ -107,7 +107,7 @@ sub opac_online_payment_begin {
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
     my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
-    my $dt = DateTime->new(time_zone => 'Asia/Kolkata');
+    my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber.'Y'.$dt->year.'M'.$dt->month.'D'.$dt->day.'T'.$dt->hour.$dt->minute.$dt->second;
     my $requestParams = "";
     $requestParams = $requestParams."merchant_id=";
