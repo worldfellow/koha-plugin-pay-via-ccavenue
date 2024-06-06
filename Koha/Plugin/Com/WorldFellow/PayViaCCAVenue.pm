@@ -13,13 +13,14 @@ use C4::Auth qw(get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
 use List::Util qw(sum);
-use URI::Escape qw(uri_escape uri_unescape);
+use URI::Encode qw(uri_encode uri_decode);
 use Time::HiRes qw(gettimeofday);
 ## Here we set our plugin version
 our $VERSION = "1.0.0";
 use Crypt::CBC;
 use MIME::Base64;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
+use DateTime
 
 ## Here is our metadata, some keys are required, some are optional
 our $metadata = {
@@ -106,39 +107,50 @@ sub opac_online_payment_begin {
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
     my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
-
+    my $dt = DateTime->new(time_zone => 'Asia/Kolkata');
+    my $transaction_id = $patron->cardnumber.'Y'.$dt->year.'M'.$dt->month.'D'.$dt->day.'T'.$dt->hour.$dt->minute.$dt->second
     my $requestParams = "";
     $requestParams = $requestParams."merchant_id=";
-    $requestParams = $requestParams.uri_escape($self->retrieve_data('merchant_id'))."&";
+    $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
     $requestParams = $requestParams."order_number=";
-    $requestParams = $requestParams.uri_escape($accountlines[0]->id)."&";
+    $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
-    $requestParams = $requestParams.uri_escape($active_currency)."&";
+    $requestParams = $requestParams.uri_encode($active_currency)."&";
     $requestParams = $requestParams."amount=";
-    $requestParams = $requestParams.uri_escape($amount_to_pay)."&";
-    $requestParams = $requestParams."merchant_param1=";
-    $requestParams = $requestParams.uri_escape($patron->id)."&";
-    $requestParams = $requestParams."merchant_param2=";
-    $requestParams = $requestParams.uri_escape(join( ',', map { $_->id } @accountlines ))."&";
-    $requestParams = $requestParams."merchant_param3=";
-    $requestParams = $requestParams.uri_escape($token)."&";
-    $requestParams = $requestParams."merchant_param4=";
-    $requestParams = $requestParams.uri_escape($patron->cardnumber)."&";
-    $requestParams = $requestParams."merchant_param5=";
-    $requestParams = $requestParams.uri_escape('payOnline')."&";
+    $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams."redirect_url=";
-    $requestParams = $requestParams.uri_escape($redirect_url)."&";
+    $requestParams = $requestParams.uri_encode($redirect_url)."&";
     $requestParams = $requestParams."cancel_url=";
-    $requestParams = $requestParams.uri_escape($cancel_url)."&";
+    $requestParams = $requestParams.uri_encode($cancel_url)."&";
     $requestParams = $requestParams."language=";
-    $requestParams = $requestParams.uri_escape('en')."&";
-
-
-
-    # my $combined_url_values = join( '', map { $_->{val}} @$url_params );
-    # my $sha256 = sha256_hex( $combined_url_values );
-
-    
+    $requestParams = $requestParams.uri_encode('EN')."&";
+    $requestParams = $requestParams."billing_name=";
+    $requestParams = $requestParams.uri_encode(($patron->firstname.' '.$patron->surname))."&";
+    $requestParams = $requestParams."billing_address=";
+    $requestParams = $requestParams.uri_encode($patron->address)."&";
+    $requestParams = $requestParams."billing_city=";
+    $requestParams = $requestParams.uri_encode($patron->city)."&";
+    $requestParams = $requestParams."billing_state=";
+    $requestParams = $requestParams.uri_encode($patron->state)."&";
+    $requestParams = $requestParams."billing_zip=";
+    $requestParams = $requestParams.uri_encode($patron->zipcode)."&";
+    $requestParams = $requestParams."billing_country=";
+    $requestParams = $requestParams.uri_encode('India')."&";
+    $requestParams = $requestParams."billing_tel=";
+    $requestParams = $requestParams.uri_encode($patron->mobile)."&";
+    $requestParams = $requestParams."billing_email=";
+    $requestParams = $requestParams.uri_encode($patron->email)."&";
+    $requestParams = $requestParams."merchant_param1=";
+    $requestParams = $requestParams.uri_encode($patron->id)."&";
+    $requestParams = $requestParams."merchant_param2=";
+    $requestParams = $requestParams.uri_encode(join( ',', map { $_->id } @accountlines ))."&";
+    $requestParams = $requestParams."merchant_param3=";
+    $requestParams = $requestParams.uri_encode($token)."&";
+    $requestParams = $requestParams."merchant_param4=";
+    $requestParams = $requestParams.uri_encode($patron->cardnumber)."&";
+    $requestParams = $requestParams."merchant_param5=";
+    $requestParams = $requestParams.uri_encode($transaction_id)."&";
+   
     my $encrypted = $self->encrypt($self->retrieve_data('working_Key'),$requestParams);
 
     $template->param(
