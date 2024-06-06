@@ -186,7 +186,7 @@ sub opac_online_payment_end {
     );
     my %encResp = $cgi->param("encResp"); 
     my $working_key = $self->retrieve_data('working_Key');
-    my @plainText = $self->decrypt($working_key,$encResp);
+    my @plainText = $self->decrypt($working_key,%encResp);
 
     warn "ccavenue INCOMING: " . Data::Dumper::Dumper( \%encResp );
     my %params = split('&', $plainText[0]);
