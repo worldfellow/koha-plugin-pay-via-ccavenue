@@ -119,7 +119,8 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."currency=";
     $requestParams = $requestParams.uri_encode('INR')."&";
     $requestParams = $requestParams."amount=";
-    $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
+    # $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
+    $requestParams = $requestParams.uri_encode(1.00)."&";
     $requestParams = $requestParams."redirect_url=";
     $requestParams = $requestParams.uri_encode($redirect_url)."&";
     $requestParams = $requestParams."cancel_url=";
@@ -183,11 +184,11 @@ sub opac_online_payment_end {
             is_plugin       => 1,
         }
     );
-    my $encResp = $cgi->param("encResp"); 
+    my %encResp = $cgi->param("encResp"); 
     my $working_key = $self->retrieve_data('working_Key');
     my @plainText = $self->decrypt($working_key,$encResp);
 
-    #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
+    warn "ccavenue INCOMING: " . Data::Dumper::Dumper( \%encResp );
     my %params = split('&', $plainText[0]);
     
     my $borrowernumber = $params{merchant_param1};
