@@ -64,7 +64,7 @@ sub opac_online_payment_begin {
     my $cgi = $self->{'cgi'};
 
     my $active_currency = Koha::Acquisition::Currencies->get_active;
-    warn "$active_currency";
+    warn $active_currency;
 
     my ( $template, $borrowernumber ) = get_template_and_user(
         {
@@ -108,7 +108,6 @@ sub opac_online_payment_begin {
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
     my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
-    warn "patron ". $patron;
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
     my $requestParams = "";
