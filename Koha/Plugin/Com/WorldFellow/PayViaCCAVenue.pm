@@ -357,7 +357,7 @@ sub encrypt {
         		-keysize     => 16
   			);
 
-	my $encrypted = $cipher->encrypt_hex($plainText);
+	my $encrypted = $cipher->encrypt_hex($$plainText);
     # my $ctx = Digest::MD5->new;
     # $ctx->add($args->{working_key});
     # $ctx->add($args->{request_str});
@@ -386,7 +386,7 @@ sub decrypt {
         		-keysize     => 16
   			);
 
-	my $plainText = $cipher->decrypt_hex($encryptedText);
+	my $plainText = $cipher->decrypt_hex($$encryptedText);
     # my $ctx = Digest::MD5->new;
     # $ctx->add($args->{working_key});
     # $ctx->add($args->{response_str});
