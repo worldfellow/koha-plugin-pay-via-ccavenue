@@ -9,7 +9,7 @@ use base qw(Koha::Plugins::Base);
 ## We will also need to include any Koha libraries we want to access
 
 use C4::Context;
-use C4::Auth qw(get_template_and_user);
+use C4::Auth qw(checkauth get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
 use List::Util qw(sum);
@@ -52,7 +52,10 @@ sub new {
 
 sub opac_online_payment {
     my ( $self, $args ) = @_;
+
     try{
+        my ($userid)   = checkauth( CGI->new, 0, {}, 'opac' );
+        my $patron     = Koha::Patrons->find( { userid => $userid } );
         return $self->retrieve_data('enable_opac_payments') eq 'Yes';
     }catch{
         warn "opac online payment"
@@ -185,11 +188,10 @@ sub opac_online_payment_end {
         }
     );
     warn "ccavenue INCOMING: " . $cgi->param("encResp");
-    my %encResp = $cgi->param("encResp"); 
+    my $encResp = $cgi->param("encResp"); 
     my $working_key = $self->retrieve_data('working_Key');
-    my @plainText = $self->decrypt($working_key,%encResp);
+    my @plainText = $self->decrypt($working_key,$encResp);
 
-    warn "ccavenue INCOMING: " . Data::Dumper::Dumper( \%encResp );
     my %params = split('&', $plainText[0]);
     
     my $borrowernumber = $params{merchant_param1};
