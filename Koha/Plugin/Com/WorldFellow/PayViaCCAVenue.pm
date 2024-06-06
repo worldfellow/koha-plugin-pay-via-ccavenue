@@ -151,7 +151,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."merchant_param5=";
     $requestParams = $requestParams.uri_encode($transaction_id)."&";
    
-    my $encrypted = encrypt($self->retrieve_data('working_Key'),$requestParams);
+    my $encrypted = $self->encrypt($self->retrieve_data('working_Key'),$requestParams);
 
     $template->param(
         borrower             => $patron,
@@ -181,7 +181,7 @@ sub opac_online_payment_end {
         }
     );
     my $encResp = $cgi->param("encResp"); 
-    my @plainText =  decrypt($self->retrieve_data('working_Key'),$encResp);
+    my @plainText =  $self->mbf_path('ccavutil.pm').decrypt($self->retrieve_data('working_Key'),$encResp);
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
     my %params = split('&', $plainText[0]);
     
