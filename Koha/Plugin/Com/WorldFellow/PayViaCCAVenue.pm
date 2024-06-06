@@ -114,7 +114,7 @@ sub opac_online_payment_begin {
     my $fullname = $patron->firstname." ".$patron->surname;
     $requestParams = $requestParams."merchant_id=";
     $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
-    $requestParams = $requestParams."order_number=";
+    $requestParams = $requestParams."order_id=";
     $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
     $requestParams = $requestParams.uri_encode($active_currency)."&";
