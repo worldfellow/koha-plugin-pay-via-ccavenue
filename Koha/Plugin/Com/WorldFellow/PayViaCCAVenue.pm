@@ -203,7 +203,7 @@ sub opac_online_payment_end {
     # # my $transaction_result_message = $vars{transactionResultMessage};
     # my $order_amount =$params{mer_amount};
 
-    my %response_params = $ccavenue->decrypt_response($enc_resp);
+    my %response_params = $ccavenue->decrypt_response($encResp);
     my $order_id           = $response_params{order_id};
     my $transaction_id        = $response_params{tracking_id};
     my $bank_ref_no        = $response_params{bank_ref_no};
