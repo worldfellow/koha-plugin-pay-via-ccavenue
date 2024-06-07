@@ -164,7 +164,7 @@ sub opac_online_payment_begin {
     my $plain_text = join('&', map { "$_=$payment_data{$_}" } keys %payment_data);
     
     my $working_key = $self->retrieve_data('working_Key');
-    my $enc_request = $self->encrypt_request($working_key, $plain_text);
+    my $enc_request = $self->encrypt($working_key, $plain_text);
 
     $template->param(
         borrower             => $patron,
