@@ -131,20 +131,20 @@ sub opac_online_payment_begin {
     #     "merchant_param5=" . uri_encode($transaction_id)
     # );
 
-    my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
-        merchant_id => $self->retrieve_data('merchant_id'),
-        access_code => $self->retrieve_data('access_code'),
-        encryption_key => $self->retrieve_data('working_key'),
-        redirect_url      => $redirect_url,
-        cancel_url        => $cancel_url,
-        amount            => '1.00',
-        currency          => $active_currency->currency
-    );
+    # my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
+    #     merchant_id => $self->retrieve_data('merchant_id'),
+    #     access_code => $self->retrieve_data('access_code'),
+    #     encryption_key => $self->retrieve_data('working_key'),
+        
+    # );
    
    my %payment_data = (
         order_id          => $accountlines[0]->id,
-        
-       
+        merchant_id => $self->retrieve_data('merchant_id'),
+        redirect_url      => $redirect_url,
+        cancel_url        => $cancel_url,
+        amount            => '1.00',
+        currency          => $active_currency->currency,
         billing_name      => $patron->surname,
         billing_address   => '',
         billing_city      => '',
@@ -161,9 +161,10 @@ sub opac_online_payment_begin {
         language          => 'EN',
     );
     # my $payment_format = $ccavenue->payment_format_data(%payment_data);
-    my $enc_request = $ccavenue->encrypt(\%payment_data);
-    # my $working_key = $self->retrieve_data('working_Key');
-    # my $encrypted = $self->encrypt($working_key,$requestParams);
+    my $plain_text = join('&', map { "$_=$payment_data{$_}" } keys %payment_data);
+    
+    my $working_key = $self->retrieve_data('working_Key');
+    my $enc_request = $self->encrypt_request($working_key, $plain_text);
 
     $template->param(
         borrower             => $patron,
@@ -383,14 +384,14 @@ sub encrypt{
 	my $cipher = Crypt::CBC->new(
         		-key         => $key,
         		-iv          => $iv,
-        		-cipher      => 'OpenSSL::AES',
+        		-cipher      => 'Crypt::OpenSSL::AES',
         		-literal_key => 1,
         		-header      => "none",
         		-padding     => "standard",
         		-keysize     => 16
   			);
 
-	my $encrypted = $cipher->encrypt_hex($plainText);
+	my $encrypted = $cipher->encrypt($plainText);
    	return $encrypted;
 
 }
