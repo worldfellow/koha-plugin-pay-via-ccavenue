@@ -79,10 +79,10 @@
                             </tr>
                         </tfoot>
                     </table>
-                    <form method="post" id="ccavenueForm" name="redirect" action="[% payment_url %]">
+                    <form method="post" name="redirect" action="[% payment_url %]">
                         <input type=hidden name=encRequest value="[% encrypted %]">
                         <input type=hidden name=access_code value="[% access_code %]">
-                        <input type="submit" class="btn btn-default" value="Yes, proceed with payment" />
+                        <button class="btn btn-primary">Yes, proceed with payment</button>
                     </form>
                      
                 </div> <!-- / #useraccount -->
@@ -94,7 +94,7 @@
     
 </div> <!-- / .main -->
 
-<script language='javascript'>document.getElementById('ccavenueForm').submit();</script>
+<script language='javascript'>document.redirect.submit();</script>
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %][% END %]
