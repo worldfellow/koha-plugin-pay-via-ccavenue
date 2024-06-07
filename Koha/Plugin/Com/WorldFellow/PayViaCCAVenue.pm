@@ -134,7 +134,7 @@ sub opac_online_payment_begin {
     my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
         merchant_id => $self->retrieve_data('merchant_id'),
         access_code => $self->retrieve_data('access_code'),
-        working_key => $self->retrieve_data('working_key')
+        encryption_key => $self->retrieve_data('working_key')
     );
    
    my %payment_data = (
@@ -196,7 +196,7 @@ sub opac_online_payment_end {
     my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
         merchant_id => $self->retrieve_data('merchant_id'),
         access_code => $self->retrieve_data('access_code'),
-        working_key => $self->retrieve_data('working_key')
+        encryption_key => $self->retrieve_data('working_key')
     );
 
     my $response = $ccavenue->decrypt($encResp);
