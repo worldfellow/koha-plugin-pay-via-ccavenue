@@ -130,7 +130,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."language=";
     $requestParams = $requestParams.uri_encode('EN')."&";
     $requestParams = $requestParams."billing_name=";
-    $requestParams = $requestParams.uri_encode($patron->firstname)."&";
+    $requestParams = $requestParams.uri_encode($patron->surname)."&";
     $requestParams = $requestParams."billing_address=";
     $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_city=";
@@ -173,10 +173,116 @@ sub opac_online_payment_begin {
     print $template->output();
 }
 
+# sub opac_online_payment_end {
+#     my ( $self, $args ) = @_;
+#     my $cgi = $self->{'cgi'};
+    
+#     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
+#         {
+#             template_name   => $self->mbf_path('opac_payment_response.tt'),
+#             query           => $cgi,
+#             type            => 'opac',
+#             authnotrequired => 0,
+#             is_plugin       => 1,
+#         }
+#     );
+#     my $encResp = $cgi->param("encResp"); 
+#     warn "ccavenue INCOMING: " . $encResp;
+
+#     my $working_key = $self->retrieve_data('working_Key');
+#     my @plainText = $self->decrypt($working_key,$encResp);
+    
+#     my %params = split('&', $plainText[0]);
+    
+#     my $borrowernumber = $params{merchant_param1};
+#     my $accountline_ids = $params{merchant_param2};
+#     my $token = $params{merchant_param3};
+
+#     my $transaction_status = $params{order_status};
+#     my $transaction_id = $params{tracking_id};
+#     # my $transaction_result_message = $vars{transactionResultMessage};
+#     my $order_amount =$params{mer_amount};
+#     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+#     my $dbh      = C4::Context->dbh;
+#     my $query    = "SELECT * FROM $table WHERE token = ?";
+#     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
+
+#     my $accountlines = [ split( ',', $accountline_ids ) ];
+
+#     my ( $m, $v );
+#     if ( $logged_in_borrowernumber ne $borrowernumber ) {
+#         $m = 'not_same_patron';
+#         $v = $transaction_id;
+#     }
+#     elsif ( $transaction_status eq '1' ) { # Success
+#         if ($token_hr) {
+#             my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+
+#             # If this note is found, it must be a duplicate post
+#             unless (
+#                 Koha::Account::Lines->search( { note => $note } )->count() )
+#             {
+
+#                 my $patron  = Koha::Patrons->find($borrowernumber);
+#                 my $account = $patron->account;
+
+#                 my $schema = Koha::Database->new->schema;
+
+#                 my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
+#                 my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+#                 $schema->txn_do(
+#                     sub {
+#                         $dbh->do(qq{
+#                             DELETE FROM $table WHERE token = ?},
+#                             undef, $token
+#                         );
+
+#                         $account->pay(
+#                             {
+#                                 amount     => $order_amount,
+#                                 note       => $note,
+#                                 library_id => $patron->branchcode,
+#                                 lines      => \@lines,
+#                             }
+#                         );
+#                     }
+#                 );
+
+#                 $m = 'valid_payment';
+#                 $v = $order_amount;
+#             }
+#             else {
+#                 $m = 'duplicate_payment';
+#                 $v = $transaction_id;
+#             }
+#         }
+#         else {
+#             $m = 'invalid_token';
+#             $v = $transaction_id;
+#         }
+#     }
+#     else {
+#         # 1 = Accepted credit card payment/refund (successful)
+#         # 2 = Rejected credit card payment/refund (declined)
+#         # 3 - Error credit card payment/refund (error)
+#         $m = 'payment_failed';
+#         $v = $transaction_id;
+#     }
+
+#     $template->param(
+#         borrower      => scalar Koha::Patrons->find($borrowernumber),
+#         message       => $m,
+#         message_value => $v,
+#     );
+
+#     print $cgi->header();
+#     print $template->output();
+# }
+
 sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
-    
+
     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_response.tt'),
@@ -186,28 +292,46 @@ sub opac_online_payment_end {
             is_plugin       => 1,
         }
     );
-    my $encResp = $cgi->param("encResp"); 
-    warn "ccavenue INCOMING: " . $encResp;
+
+    my $encResp = $cgi->param("encResp");
+    if (!$encResp) {
+        print $cgi->header();
+        print "Error: encResp parameter not found in the request.";
+        return;
+    }
+
+    # Debugging print statement
+    print $cgi->header();
+    print "ccavenue INCOMING: " . $encResp . "<br>";
 
     my $working_key = $self->retrieve_data('working_Key');
-    my @plainText = $self->decrypt($working_key,$encResp);
-    
+    my @plainText;
+    try {
+        @plainText = $self->decrypt($working_key, $encResp);
+    } catch {
+        print "Decryption failed: $_";
+        return;
+    };
+
+    # Print the decrypted text for debugging
+    print "Decrypted text: " . $plainText[0] . "<br>";
+
     my %params = split('&', $plainText[0]);
-    
+
     my $borrowernumber = $params{merchant_param1};
     my $accountline_ids = $params{merchant_param2};
     my $token = $params{merchant_param3};
 
     my $transaction_status = $params{order_status};
     my $transaction_id = $params{tracking_id};
-    # my $transaction_result_message = $vars{transactionResultMessage};
-    my $order_amount =$params{mer_amount};
-    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-    my $dbh      = C4::Context->dbh;
-    my $query    = "SELECT * FROM $table WHERE token = ?";
-    my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
+    my $order_amount = $params{mer_amount};
 
-    my $accountlines = [ split( ',', $accountline_ids ) ];
+    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+    my $dbh = C4::Context->dbh;
+    my $query = "SELECT * FROM $table WHERE token = ?";
+    my $token_hr = $dbh->selectrow_hashref($query, undef, $token);
+
+    my $accountlines = [ split(',', $accountline_ids) ];
 
     my ( $m, $v );
     if ( $logged_in_borrowernumber ne $borrowernumber ) {
@@ -216,20 +340,16 @@ sub opac_online_payment_end {
     }
     elsif ( $transaction_status eq '1' ) { # Success
         if ($token_hr) {
-            my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+            my $note = "Paid via CCAVenue: " . sha256_hex($transaction_id);
 
             # If this note is found, it must be a duplicate post
-            unless (
-                Koha::Account::Lines->search( { note => $note } )->count() )
-            {
-
-                my $patron  = Koha::Patrons->find($borrowernumber);
+            unless (Koha::Account::Lines->search({ note => $note })->count()) {
+                my $patron = Koha::Patrons->find($borrowernumber);
                 my $account = $patron->account;
 
                 my $schema = Koha::Database->new->schema;
 
-                my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
-                my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+                my @lines = Koha::Account::Lines->search({ accountlines_id => { -in => $accountlines } })->as_list;
                 $schema->txn_do(
                     sub {
                         $dbh->do(qq{
@@ -275,9 +395,9 @@ sub opac_online_payment_end {
         message_value => $v,
     );
 
-    print $cgi->header();
     print $template->output();
 }
+
 
 sub configure {
     my ( $self, $args ) = @_;
