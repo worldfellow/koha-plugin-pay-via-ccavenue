@@ -114,57 +114,31 @@ sub opac_online_payment_begin {
 
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
-    # my $requestParams = join('&',
-    #     "merchant_id=" . uri_encode($self->retrieve_data('merchant_id')),
-    #     "order_id=" . uri_encode($accountlines[0]->id),
-    #     "currency=" . uri_encode($active_currency->currency),
-    #     "amount=" . uri_encode(1.00),
-    #     "redirect_url=" . uri_encode($redirect_url),
-    #     "cancel_url=" . uri_encode($cancel_url),
-    #     "language=" . uri_encode('EN'),
-    #     "billing_name=" . uri_encode($patron->surname),
-    #     "billing_country=" . uri_encode('India'),
-    #     "merchant_param1=" . uri_encode($patron->id),
-    #     "merchant_param2=" . uri_encode(join(',', map { $_->id } @accountlines)),
-    #     "merchant_param3=" . uri_encode($token),
-    #     "merchant_param4=" . uri_encode($patron->cardnumber),
-    #     "merchant_param5=" . uri_encode($transaction_id)
-    # );
-
-    # my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
-    #     merchant_id => $self->retrieve_data('merchant_id'),
-    #     access_code => $self->retrieve_data('access_code'),
-    #     encryption_key => $self->retrieve_data('working_key'),
-        
-    # );
-   
-   my %payment_data = (
-        order_id          => $accountlines[0]->id,
-        merchant_id => $self->retrieve_data('merchant_id'),
-        redirect_url      => $redirect_url,
-        cancel_url        => $cancel_url,
-        amount            => '1.00',
-        currency          => $active_currency->currency,
-        billing_name      => $patron->surname,
-        billing_address   => '',
-        billing_city      => '',
-        billing_state     => '',
-        billing_zip       => '',
-        billing_country   => 'India',
-        billing_tel       => '',
-        billing_email     => '',
-        merchant_param1   => $patron->id,
-        merchant_param2   => join( ',', map { $_->id } @accountlines ),
-        merchant_param3   => $token,
-        merchant_param4   => $patron->cardnumber,
-        merchant_param5   => $transaction_id,
-        language          => 'EN',
+    my $requestParams = join('&',
+        "merchant_id=" . uri_encode($self->retrieve_data('merchant_id')),
+        "order_id=" . uri_encode($accountlines[0]->id),
+        "currency=" . uri_encode($active_currency->currency),
+        "amount=" . uri_encode(1.00),
+        "redirect_url=" . uri_encode($redirect_url),
+        "cancel_url=" . uri_encode($cancel_url),
+        "language=" . uri_encode('EN'),
+        "billing_name=" . uri_encode($patron->surname),
+        "billing_address=". uri_encode(""),
+        "billing_city=" . uri_encode(""),
+        "billing_state=" . uri_encode(""),
+        "billing_zip=" . uri_encode(""),
+        "billing_tel=" . uri_encode(""),
+        "billing_email=" . uri_encode(""),
+        "billing_country=" . uri_encode('India'),
+        "merchant_param1=" . uri_encode($patron->id),
+        "merchant_param2=" . uri_encode(join(',', map { $_->id } @accountlines)),
+        "merchant_param3=" . uri_encode($token),
+        "merchant_param4=" . uri_encode($patron->cardnumber),
+        "merchant_param5=" . uri_encode($transaction_id)
     );
-    # my $payment_format = $ccavenue->payment_format_data(%payment_data);
-    my $plain_text = join('&', map { "$_=$payment_data{$_}" } keys %payment_data);
-    
+
     my $working_key = $self->retrieve_data('working_Key');
-    my $enc_request = $self->encrypt($working_key, $plain_text);
+    my $enc_request = $self->encrypt($working_key, $requestParams);
 
     $template->param(
         borrower             => $patron,
