@@ -114,31 +114,51 @@ sub opac_online_payment_begin {
 
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
-    my $requestParams = join('&',
-        "merchant_id=" . uri_encode($self->retrieve_data('merchant_id')),
-        "order_id=" . uri_encode($accountlines[0]->id),
-        "currency=" . uri_encode($active_currency->currency),
-        "amount=" . uri_encode(1.00),
-        "redirect_url=" . uri_encode($redirect_url),
-        "cancel_url=" . uri_encode($cancel_url),
-        "language=" . uri_encode('EN'),
-        "billing_name=" . uri_encode($patron->surname),
-        "billing_address=". uri_encode(""),
-        "billing_city=" . uri_encode(""),
-        "billing_state=" . uri_encode(""),
-        "billing_zip=" . uri_encode(""),
-        "billing_tel=" . uri_encode(""),
-        "billing_email=" . uri_encode(""),
-        "billing_country=" . uri_encode('India'),
-        "merchant_param1=" . uri_encode($patron->id),
-        "merchant_param2=" . uri_encode(join(',', map { $_->id } @accountlines)),
-        "merchant_param3=" . uri_encode($token),
-        "merchant_param4=" . uri_encode($patron->cardnumber),
-        "merchant_param5=" . uri_encode($transaction_id)
-    );
-
+    my $requestParams = "";
+    $requestParams = $requestParams."merchant_id=";
+    $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
+    $requestParams = $requestParams."order_id=";
+    $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
+    $requestParams = $requestParams."currency=";
+    $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
+    $requestParams = $requestParams."amount=";
+    # $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
+    $requestParams = $requestParams.uri_encode(1.00)."&";
+    $requestParams = $requestParams."redirect_url=";
+    $requestParams = $requestParams.uri_encode($redirect_url)."&";
+    $requestParams = $requestParams."cancel_url=";
+    $requestParams = $requestParams.uri_encode($cancel_url)."&";
+    $requestParams = $requestParams."language=";
+    $requestParams = $requestParams.uri_encode('EN')."&";
+    $requestParams = $requestParams."billing_name=";
+    $requestParams = $requestParams.uri_encode($patron->surname)."&";
+    $requestParams = $requestParams."billing_address=";
+    $requestParams = $requestParams.uri_encode("")."&";
+    $requestParams = $requestParams."billing_city=";
+    $requestParams = $requestParams.uri_encode("")."&";
+    $requestParams = $requestParams."billing_state=";
+    $requestParams = $requestParams.uri_encode("")."&";
+    $requestParams = $requestParams."billing_zip=";
+    $requestParams = $requestParams.uri_encode("")."&";
+    $requestParams = $requestParams."billing_country=";
+    $requestParams = $requestParams.uri_encode('India')."&";
+    $requestParams = $requestParams."billing_tel=";
+    $requestParams = $requestParams.uri_encode("")."&";
+    $requestParams = $requestParams."billing_email=";
+    $requestParams = $requestParams.uri_encode("")."&";
+    $requestParams = $requestParams."merchant_param1=";
+    $requestParams = $requestParams.uri_encode($patron->id)."&";
+    $requestParams = $requestParams."merchant_param2=";
+    $requestParams = $requestParams.uri_encode(join( ',', map { $_->id } @accountlines ))."&";
+    $requestParams = $requestParams."merchant_param3=";
+    $requestParams = $requestParams.uri_encode($token)."&";
+    $requestParams = $requestParams."merchant_param4=";
+    $requestParams = $requestParams.uri_encode($patron->cardnumber)."&";
+    $requestParams = $requestParams."merchant_param5=";
+    $requestParams = $requestParams.uri_encode($transaction_id)."&";
+   
     my $working_key = $self->retrieve_data('working_Key');
-    my $enc_request = $self->encrypt($working_key, $requestParams);
+    my $encrypted = $self->encrypt($working_key,$requestParams);
 
     $template->param(
         borrower             => $patron,
@@ -146,7 +166,7 @@ sub opac_online_payment_begin {
         enable_opac_payments => $self->retrieve_data('enable_opac_payments'),
         accountlines         => \@accountlines,
         payment_url          => $self->retrieve_data('payment_url'),
-        enc_request          => $enc_request,
+        enc_request          => $encrypted,
         access_code          => $self->retrieve_data('access_code')
     );
 
