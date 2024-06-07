@@ -80,7 +80,7 @@
                         </tfoot>
                     </table>
                     <form method="post" name="redirect" action="[% payment_url %]">
-                        <input type=hidden name=encRequest value="[% encrypted %]">
+                        <input type=hidden name=encRequest value="[% enc_request %]">
                         <input type=hidden name=access_code value="[% access_code %]">
                         <input type="submit" class="btn btn-default" value="Yes, proceed with payment" />
                     </form>
