@@ -111,13 +111,12 @@ sub opac_online_payment_begin {
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
     my $requestParams = "";
-    my $fullname = $patron->firstname." ".$patron->surname;
     $requestParams = $requestParams."merchant_id=";
     $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
     $requestParams = $requestParams."order_id=";
     $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
-    $requestParams = $requestParams.uri_encode('INR')."&";
+    $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
     $requestParams = $requestParams."amount=";
     $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams."redirect_url=";
@@ -127,7 +126,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."language=";
     $requestParams = $requestParams.uri_encode('EN')."&";
     $requestParams = $requestParams."billing_name=";
-    $requestParams = $requestParams.uri_encode($fullname)."&";
+    $requestParams = $requestParams.uri_encode($patron->surname)."&";
     $requestParams = $requestParams."billing_address=";
     $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_city=";
@@ -185,19 +184,23 @@ sub opac_online_payment_end {
     );
     my $encResp = $cgi->param("encResp"); 
     my $working_key = $self->retrieve_data('working_Key');
-    my @plainText = $self->decrypt($working_key,$encResp);
+    my $plainText = $self->decrypt($working_key,$encResp);
 
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
-    my %params = split('&', $plainText[0]);
-    
-    my $borrowernumber = $params{merchant_param1};
-    my $accountline_ids = $params{merchant_param2};
-    my $token = $params{merchant_param3};
+    my @params = split('&', $plainText);
+    my $sel_param = {};
+    foreach my $paramsVal (@params) {
+        my @values = split('=', $paramsVal);
+        $sel_param->{$values[0]} => $values[1];
+    }
+    my $borrowernumber = $sel_param->{merchant_param1};
+    my $accountline_ids = $sel_param->{merchant_param2};
+    my $token = $sel_param->{merchant_param3};
 
-    my $transaction_status = $params{order_status};
-    my $transaction_id = $params{tracking_id};
+    my $transaction_status = $sel_param->{order_status};
+    my $transaction_id = $sel_param->{tracking_id};
     # my $transaction_result_message = $vars{transactionResultMessage};
-    my $order_amount =$params{mer_amount};
+    my $order_amount =$sel_param->{mer_amount};
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     my $dbh      = C4::Context->dbh;
     my $query    = "SELECT * FROM $table WHERE token = ?";
@@ -210,7 +213,7 @@ sub opac_online_payment_end {
         $m = 'not_same_patron';
         $v = $transaction_id;
     }
-    elsif ( $transaction_status eq '1' ) { # Success
+    elsif ( $transaction_status eq 'Success' ) { # Success
         if ($token_hr) {
             my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
 
