@@ -214,7 +214,7 @@ sub opac_online_payment_end {
     my $order_amount = $response_params{mer_amount};
     my $token = $response_params{merchant_param3};
     my $accountline_ids = $response_params{merchant_param2};
-    my $borrowernumber = $params{merchant_param3};
+    my $borrowernumber = $response_params{merchant_param3};
 
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     my $dbh      = C4::Context->dbh;
