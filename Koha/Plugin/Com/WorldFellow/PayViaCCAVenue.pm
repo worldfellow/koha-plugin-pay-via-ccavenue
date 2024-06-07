@@ -132,15 +132,15 @@ sub opac_online_payment_begin {
     # );
 
     my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
-        merchant_id  => $merchant_id,
-        access_code  => $access_code,
-        working_key  => $working_key,
+        merchant_id  => $self->retrieve_data('merchant_id'),
+        access_code  => $self->retrieve_data('access_code'),
+        working_key  => $self->retrieve_data('working_key'),
         redirect_url => $redirect_url,
         cancel_url   => $cancel_url,
         order_id     => $accountlines[0]->id,
         amount       => 1.00,
         currency     => $active_currency->currency,
-        language     => $language,
+        language     => 'EN',
         billing_name =>  $patron->surname,
         billing_country =>  'India',
         merchant_param1 =>  $patron->id,
@@ -183,11 +183,11 @@ sub opac_online_payment_end {
     );
 
     my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
-        working_key => $working_key,
+        working_key => $self->retrieve_data('working_key'),
     );
 
     # warn 'logged_in_borrower == ' . $logged_in_borrowernumber;
-    # my $encResp = $cgi->param("encResp"); 
+    my $encResp = $cgi->param("encResp"); 
     # say $encResp;
     # my $working_key = $self->retrieve_data('working_Key');
     # my @plainText = $self->decrypt($working_key,$encResp);
@@ -205,13 +205,16 @@ sub opac_online_payment_end {
 
     my %response_params = $ccavenue->decrypt_response($enc_resp);
     my $order_id           = $response_params{order_id};
-    my $tracking_id        = $response_params{tracking_id};
+    my $transaction_id        = $response_params{tracking_id};
     my $bank_ref_no        = $response_params{bank_ref_no};
     my $transaction_status       = $response_params{order_status};
     my $failure_message    = $response_params{failure_message};
     my $payment_mode       = $response_params{payment_mode};
     my $status_code = $response_params{status};
     my $order_amount = $response_params{mer_amount};
+    my $token = $response_params{merchant_param3};
+    my $accountline_ids = $response_params{merchant_param2};
+    my $borrowernumber = $params{merchant_param3};
 
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     my $dbh      = C4::Context->dbh;
