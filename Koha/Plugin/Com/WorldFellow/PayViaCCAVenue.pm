@@ -70,7 +70,7 @@ sub opac_online_payment_begin {
     my $active_currency = Koha::Acquisition::Currencies->get_active;
     
 
-    my ( $template, $borrowernumber ) = get_template_and_user(
+    my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_request.tt'),
             query           => $cgi,
@@ -132,25 +132,34 @@ sub opac_online_payment_begin {
     # );
 
     my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
-        merchant_id  => $self->retrieve_data('merchant_id'),
-        access_code  => $self->retrieve_data('access_code'),
-        working_key  => $self->retrieve_data('working_key'),
-        redirect_url => $redirect_url,
-        cancel_url   => $cancel_url,
-        order_id     => $accountlines[0]->id,
-        amount       => 1.00,
-        currency     => $active_currency->currency,
-        language     => 'EN',
-        billing_name =>  $patron->surname,
-        billing_country =>  'India',
-        merchant_param1 =>  $patron->id,
-        merchant_param2 =>  join(',', map { $_->id } @accountlines),
-        merchant_param3 =>  $token,
-        merchant_param4 =>  $patron->cardnumber,
-        merchant_param5 =>  $transaction_id
+        merchant_id => $self->retrieve_data('merchant_id'),
+        access_code => $self->retrieve_data('access_code'),
+        working_key => $self->retrieve_data('working_key')
     );
    
-    my $encrypted = $ccavenue->encrypt_request;
+   my %payment_data = (
+        order_id          => $accountlines[0]->id,
+        amount            => '1.00',
+        currency          => $active_currency->currency,
+        redirect_url      => $redirect_url,
+        cancel_url        => $cancel_url,
+        billing_name      => $patron->surname,
+        billing_address   => '',
+        billing_city      => '',
+        billing_state     => '',
+        billing_zip       => '',
+        billing_country   => 'India',
+        billing_tel       => '',
+        billing_email     => '',
+        merchant_param1   => $patron->id,
+        merchant_param2   => join( ',', map { $_->id } @accountlines ),
+        merchant_param3   => $token,
+        merchant_param4   => $patron->cardnumber,
+        merchant_param5   => $transaction_id,
+        language          => 'EN',
+    );
+    my $payment_format = $ccavenue->payment_format_data(%payment_data);
+    my $encrypted = $ccavenue->encrypt($payment_format);
     # my $working_key = $self->retrieve_data('working_Key');
     # my $encrypted = $self->encrypt($working_key,$requestParams);
 
@@ -182,13 +191,16 @@ sub opac_online_payment_end {
         }
     );
 
+    my $encResp = $cgi->param("encResp"); 
+
     my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
-        working_key => $self->retrieve_data('working_key'),
+        merchant_id => $self->retrieve_data('merchant_id'),
+        access_code => $self->retrieve_data('access_code'),
+        working_key => $self->retrieve_data('working_key')
     );
 
-    # warn 'logged_in_borrower == ' . $logged_in_borrowernumber;
-    my $encResp = $cgi->param("encResp"); 
-    # say $encResp;
+    my $response = $ccavenue->decrypt($enc_response);
+
     # my $working_key = $self->retrieve_data('working_Key');
     # my @plainText = $self->decrypt($working_key,$encResp);
     
@@ -203,18 +215,18 @@ sub opac_online_payment_end {
     # # my $transaction_result_message = $vars{transactionResultMessage};
     # my $order_amount =$params{mer_amount};
 
-    my %response_params = $ccavenue->decrypt_response($encResp);
-    my $order_id           = $response_params{order_id};
-    my $transaction_id        = $response_params{tracking_id};
-    my $bank_ref_no        = $response_params{bank_ref_no};
-    my $transaction_status       = $response_params{order_status};
-    my $failure_message    = $response_params{failure_message};
-    my $payment_mode       = $response_params{payment_mode};
-    my $status_code = $response_params{status};
-    my $order_amount = $response_params{mer_amount};
-    my $token = $response_params{merchant_param3};
-    my $accountline_ids = $response_params{merchant_param2};
-    my $borrowernumber = $response_params{merchant_param3};
+    # my %response-> = $ccavenue->decrypt_response($encResp);
+    my $order_id           = $response->{order_id};
+    my $transaction_id        = $response->{tracking_id};
+    my $bank_ref_no        = $response->{bank_ref_no};
+    my $transaction_status       = $response->{order_status};
+    my $failure_message    = $response->{failure_message};
+    my $payment_mode       = $response->{payment_mode};
+    my $status_code = $response->{status};
+    my $order_amount = $response->{mer_amount};
+    my $token = $response->{merchant_param3};
+    my $accountline_ids = $response->{merchant_param2};
+    my $borrowernumber = $response->{merchant_param1};
 
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     my $dbh      = C4::Context->dbh;
