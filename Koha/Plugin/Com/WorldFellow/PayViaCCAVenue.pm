@@ -160,8 +160,8 @@ sub opac_online_payment_begin {
         merchant_param5   => $transaction_id,
         language          => 'EN',
     );
-    my $payment_format = $ccavenue->payment_format_data(%payment_data);
-    my $encrypted = $ccavenue->encrypt($payment_format);
+    # my $payment_format = $ccavenue->payment_format_data(%payment_data);
+    my $encrypted = $ccavenue->encrypt(%payment_format);
     # my $working_key = $self->retrieve_data('working_Key');
     # my $encrypted = $self->encrypt($working_key,$requestParams);
 
