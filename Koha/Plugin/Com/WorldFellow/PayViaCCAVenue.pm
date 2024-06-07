@@ -134,15 +134,17 @@ sub opac_online_payment_begin {
     my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
         merchant_id => $self->retrieve_data('merchant_id'),
         access_code => $self->retrieve_data('access_code'),
-        encryption_key => $self->retrieve_data('working_key')
+        encryption_key => $self->retrieve_data('working_key'),
+         redirect_url      => $redirect_url,
+        cancel_url        => $cancel_url,
+        amount            => '1.00',
+        currency          => $active_currency->currency
     );
    
    my %payment_data = (
         order_id          => $accountlines[0]->id,
-        amount            => '1.00',
-        currency          => $active_currency->currency,
-        redirect_url      => $redirect_url,
-        cancel_url        => $cancel_url,
+        
+       
         billing_name      => $patron->surname,
         billing_address   => '',
         billing_city      => '',
