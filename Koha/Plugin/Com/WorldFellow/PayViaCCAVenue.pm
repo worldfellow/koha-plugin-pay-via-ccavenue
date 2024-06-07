@@ -135,7 +135,7 @@ sub opac_online_payment_begin {
         merchant_id => $self->retrieve_data('merchant_id'),
         access_code => $self->retrieve_data('access_code'),
         encryption_key => $self->retrieve_data('working_key'),
-         redirect_url      => $redirect_url,
+        redirect_url      => $redirect_url,
         cancel_url        => $cancel_url,
         amount            => '1.00',
         currency          => $active_currency->currency
@@ -161,7 +161,7 @@ sub opac_online_payment_begin {
         language          => 'EN',
     );
     # my $payment_format = $ccavenue->payment_format_data(%payment_data);
-    my $payment_url = $ccavenue->get_payment_url(%payment_data);
+    my $enc_request = $ccavenue->encrypt(\%payment_data);
     # my $working_key = $self->retrieve_data('working_Key');
     # my $encrypted = $self->encrypt($working_key,$requestParams);
 
@@ -170,8 +170,8 @@ sub opac_online_payment_begin {
         payment_method       => scalar $cgi->param('payment_method'),
         enable_opac_payments => $self->retrieve_data('enable_opac_payments'),
         accountlines         => \@accountlines,
-        payment_url          => $payment_url,
-        # encrypted            => $encrypted,
+        payment_url          => $self->retrieve_data('payment_url'),
+        enc_request          => $enc_request,
         access_code          => $self->retrieve_data('access_code')
     );
 
@@ -270,7 +270,7 @@ sub opac_online_payment_end {
                                 amount     => $order_amount,
                                 note       => $note,
                                 library_id => $patron->branchcode,
-                                lines      => \@lines,
+                                lines      => \@lines
                             }
                         );
                     }
@@ -322,22 +322,20 @@ sub configure {
             payment_url => $self->retrieve_data('payment_url'),
             merchant_id => $self->retrieve_data('merchant_id'),
             access_code => $self->retrieve_data('access_code'),
-            working_Key => $self->retrieve_data('working_Key'),
+            working_Key => $self->retrieve_data('working_Key')
         );
 
         print $cgi->header();
         print $template->output();
     }
     else {
-        $self->store_data(
-            {
-                enable_opac_payments => $cgi->param('enable_opac_payments'),
-                payment_url=> $cgi->param('payment_url'),
-                merchant_id => $cgi->param('merchant_id'),
-                access_code => $cgi->param('access_code'),
-                working_Key => $cgi->param('working_Key'),
-            }
-        );
+        $self->store_data({
+            enable_opac_payments => $cgi->param('enable_opac_payments'),
+            payment_url=> $cgi->param('payment_url'),
+            merchant_id => $cgi->param('merchant_id'),
+            access_code => $cgi->param('access_code'),
+            working_Key => $cgi->param('working_Key')
+        });
         $self->go_home();
     }
 }
