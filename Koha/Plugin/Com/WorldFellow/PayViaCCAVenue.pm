@@ -119,7 +119,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."order_id=";
     $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
-    $requestParams = $requestParams.uri_encode(active_currency->currency)."&";
+    $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
     $requestParams = $requestParams."amount=";
     # $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams.uri_encode(1.00)."&";
