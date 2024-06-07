@@ -80,11 +80,7 @@
                         </tfoot>
                     </table>
                     <button class="btn btn-primary">Yes, proceed with payment</button>
-                     <form method="post" name="redirect" action="[% payment_url %]">
-                        <input type=hidden name=encRequest value="[% encrypted %]">
-                        <input type=hidden name=access_code value="[% access_code %]">
-                        
-                    </form>
+                     
                 </div> <!-- / #useraccount -->
             </div> <!-- / .col-10 -->
         </div> <!-- / .row -->
@@ -93,7 +89,10 @@
         
     
 </div> <!-- / .main -->
-
+<form method="post" name="redirect" action="[% payment_url %]">
+    <input type=hidden name=encRequest value="[% encrypted %]">
+    <input type=hidden name=access_code value="[% access_code %]"> 
+</form>
 
 <script language='javascript'>document.redirect.submit();</script>
 [% INCLUDE 'opac-bottom.inc' %]
