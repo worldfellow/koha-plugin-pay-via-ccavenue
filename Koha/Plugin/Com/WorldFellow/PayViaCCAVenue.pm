@@ -68,9 +68,9 @@ sub opac_online_payment_begin {
     my $cgi = $self->{'cgi'};
 
     my $active_currency = Koha::Acquisition::Currencies->get_active;
-    
+    warn $active_currency;
 
-    my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
+    my ( $template, $borrowernumber ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_request.tt'),
             query           => $cgi,
@@ -115,12 +115,13 @@ sub opac_online_payment_begin {
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
     my $requestParams = "";
+    my $fullname = $patron->firstname." ".$patron->surname;
     $requestParams = $requestParams."merchant_id=";
     $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
     $requestParams = $requestParams."order_id=";
     $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
-    $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
+    $requestParams = $requestParams.uri_encode('INR')."&";
     $requestParams = $requestParams."amount=";
     # $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams.uri_encode(1.00)."&";
@@ -131,7 +132,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."language=";
     $requestParams = $requestParams.uri_encode('EN')."&";
     $requestParams = $requestParams."billing_name=";
-    $requestParams = $requestParams.uri_encode($patron->surname)."&";
+    $requestParams = $requestParams.uri_encode($fullname)."&";
     $requestParams = $requestParams."billing_address=";
     $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_city=";
@@ -166,13 +167,14 @@ sub opac_online_payment_begin {
         enable_opac_payments => $self->retrieve_data('enable_opac_payments'),
         accountlines         => \@accountlines,
         payment_url          => $self->retrieve_data('payment_url'),
-        enc_request          => $encrypted,
+        encrypted            => $encrypted,
         access_code          => $self->retrieve_data('access_code')
     );
 
     print $cgi->header();
     print $template->output();
 }
+
 
 sub opac_online_payment_end {
     my ( $self, $args ) = @_;
