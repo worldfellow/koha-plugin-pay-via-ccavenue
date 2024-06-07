@@ -177,6 +177,7 @@ sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
     
+    print "Hello World"
     warn 'param -> ' . $cgi->param('encResp');
     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
         {
@@ -190,6 +191,7 @@ sub opac_online_payment_end {
 
     warn 'logged_in_borrower == ' . $logged_in_borrowernumber;
     my $encResp = $cgi->param("encResp"); 
+    say $encResp;
     my $working_key = $self->retrieve_data('working_Key');
     my @plainText = $self->decrypt($working_key,$encResp);
     
