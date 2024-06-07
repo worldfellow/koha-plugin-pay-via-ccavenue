@@ -384,7 +384,7 @@ sub encrypt{
 	my $cipher = Crypt::CBC->new(
         		-key         => $key,
         		-iv          => $iv,
-        		-cipher      => 'Crypt::OpenSSL::AES',
+        		-cipher      => 'OpenSSL::AES',
         		-literal_key => 1,
         		-header      => "none",
         		-padding     => "standard",
