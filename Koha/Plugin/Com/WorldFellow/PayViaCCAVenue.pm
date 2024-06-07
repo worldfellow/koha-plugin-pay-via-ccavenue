@@ -177,7 +177,7 @@ sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
     
-    print "Hello World"
+    print "Hello World";
     warn 'param -> ' . $cgi->param('encResp');
     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
         {
