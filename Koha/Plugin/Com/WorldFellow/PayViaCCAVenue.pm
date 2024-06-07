@@ -9,7 +9,7 @@ use base qw(Koha::Plugins::Base);
 ## We will also need to include any Koha libraries we want to access
 
 use C4::Context;
-use C4::Auth qw(checkauth get_template_and_user);
+use C4::Auth qw(get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
 use List::Util qw(sum);
@@ -21,7 +21,6 @@ use Crypt::CBC;
 use MIME::Base64;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
 use DateTime;
-use Net::Payment::CCAvenue::NonSeamless;
 
 ## Here is our metadata, some keys are required, some are optional
 our $metadata = {
@@ -53,10 +52,7 @@ sub new {
 
 sub opac_online_payment {
     my ( $self, $args ) = @_;
-
     try{
-        my ($userid)   = checkauth( CGI->new, 0, {}, 'opac' );
-        my $patron     = Koha::Patrons->find( { userid => $userid } );
         return $self->retrieve_data('enable_opac_payments') eq 'Yes';
     }catch{
         warn "opac online payment"
@@ -68,6 +64,8 @@ sub opac_online_payment_begin {
     my $cgi = $self->{'cgi'};
 
     my $active_currency = Koha::Acquisition::Currencies->get_active;
+    warn $active_currency;
+
     my ( $template, $borrowernumber ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_request.tt'),
@@ -113,16 +111,15 @@ sub opac_online_payment_begin {
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
     my $requestParams = "";
-   
+    my $fullname = $patron->firstname." ".$patron->surname;
     $requestParams = $requestParams."merchant_id=";
     $requestParams = $requestParams.uri_encode($self->retrieve_data('merchant_id'))."&";
     $requestParams = $requestParams."order_id=";
     $requestParams = $requestParams.uri_encode($accountlines[0]->id)."&";
     $requestParams = $requestParams."currency=";
-    $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
+    $requestParams = $requestParams.uri_encode('INR')."&";
     $requestParams = $requestParams."amount=";
-    # $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
-    $requestParams = $requestParams.uri_encode(1.00)."&";
+    $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams."redirect_url=";
     $requestParams = $requestParams.uri_encode($redirect_url)."&";
     $requestParams = $requestParams."cancel_url=";
@@ -130,7 +127,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."language=";
     $requestParams = $requestParams.uri_encode('EN')."&";
     $requestParams = $requestParams."billing_name=";
-    $requestParams = $requestParams.uri_encode($patron->surname)."&";
+    $requestParams = $requestParams.uri_encode($fullname)."&";
     $requestParams = $requestParams."billing_address=";
     $requestParams = $requestParams.uri_encode("")."&";
     $requestParams = $requestParams."billing_city=";
@@ -173,11 +170,10 @@ sub opac_online_payment_begin {
     print $template->output();
 }
 
-
 sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
-    
+
     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_response.tt'),
@@ -187,44 +183,21 @@ sub opac_online_payment_end {
             is_plugin       => 1,
         }
     );
-
     my $encResp = $cgi->param("encResp"); 
+    my $working_key = $self->retrieve_data('working_Key');
+    my @plainText = $self->decrypt($working_key,$encResp);
 
-    my $ccavenue = Net::Payment::CCAvenue::NonSeamless->new(
-        merchant_id => $self->retrieve_data('merchant_id'),
-        access_code => $self->retrieve_data('access_code'),
-        encryption_key => $self->retrieve_data('working_key')
-    );
-
-    my $response = $ccavenue->decrypt($encResp);
-
-    # my $working_key = $self->retrieve_data('working_Key');
-    # my @plainText = $self->decrypt($working_key,$encResp);
+    #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
+    my %params = split('&', $plainText[0]);
     
-    # my %params = split('&', $plainText[0]);
-    
-    # my $borrowernumber = $params{merchant_param1};
-    # my $accountline_ids = $params{merchant_param2};
-    # my $token = $params{merchant_param3};
+    my $borrowernumber = $params{merchant_param1};
+    my $accountline_ids = $params{merchant_param2};
+    my $token = $params{merchant_param3};
 
-    # my $transaction_status = $params{order_status};
-    # my $transaction_id = $params{tracking_id};
-    # # my $transaction_result_message = $vars{transactionResultMessage};
-    # my $order_amount =$params{mer_amount};
-
-    # my %response-> = $ccavenue->decrypt_response($encResp);
-    my $order_id           = $response->{order_id};
-    my $transaction_id        = $response->{tracking_id};
-    my $bank_ref_no        = $response->{bank_ref_no};
-    my $transaction_status       = $response->{order_status};
-    my $failure_message    = $response->{failure_message};
-    my $payment_mode       = $response->{payment_mode};
-    my $status_code = $response->{status};
-    my $order_amount = $response->{mer_amount};
-    my $token = $response->{merchant_param3};
-    my $accountline_ids = $response->{merchant_param2};
-    my $borrowernumber = $response->{merchant_param1};
-
+    my $transaction_status = $params{order_status};
+    my $transaction_id = $params{tracking_id};
+    # my $transaction_result_message = $vars{transactionResultMessage};
+    my $order_amount =$params{mer_amount};
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     my $dbh      = C4::Context->dbh;
     my $query    = "SELECT * FROM $table WHERE token = ?";
@@ -237,7 +210,7 @@ sub opac_online_payment_end {
         $m = 'not_same_patron';
         $v = $transaction_id;
     }
-    elsif ( $transaction_status eq 'Success' ) { # Success
+    elsif ( $transaction_status eq '1' ) { # Success
         if ($token_hr) {
             my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
 
@@ -265,7 +238,7 @@ sub opac_online_payment_end {
                                 amount     => $order_amount,
                                 note       => $note,
                                 library_id => $patron->branchcode,
-                                lines      => \@lines
+                                lines      => \@lines,
                             }
                         );
                     }
@@ -302,8 +275,6 @@ sub opac_online_payment_end {
     print $template->output();
 }
 
-
-
 sub configure {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
@@ -317,20 +288,22 @@ sub configure {
             payment_url => $self->retrieve_data('payment_url'),
             merchant_id => $self->retrieve_data('merchant_id'),
             access_code => $self->retrieve_data('access_code'),
-            working_Key => $self->retrieve_data('working_Key')
+            working_Key => $self->retrieve_data('working_Key'),
         );
 
         print $cgi->header();
         print $template->output();
     }
     else {
-        $self->store_data({
-            enable_opac_payments => $cgi->param('enable_opac_payments'),
-            payment_url=> $cgi->param('payment_url'),
-            merchant_id => $cgi->param('merchant_id'),
-            access_code => $cgi->param('access_code'),
-            working_Key => $cgi->param('working_Key')
-        });
+        $self->store_data(
+            {
+                enable_opac_payments => $cgi->param('enable_opac_payments'),
+                payment_url=> $cgi->param('payment_url'),
+                merchant_id => $cgi->param('merchant_id'),
+                access_code => $cgi->param('access_code'),
+                working_Key => $cgi->param('working_Key'),
+            }
+        );
         $self->go_home();
     }
 }
@@ -385,7 +358,7 @@ sub encrypt{
         		-keysize     => 16
   			);
 
-	my $encrypted = $cipher->encrypt($plainText);
+	my $encrypted = $cipher->encrypt_hex($plainText);
    	return $encrypted;
 
 }
