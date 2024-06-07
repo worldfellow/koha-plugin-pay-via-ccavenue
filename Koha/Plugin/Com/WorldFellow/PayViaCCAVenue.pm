@@ -199,7 +199,7 @@ sub opac_online_payment_end {
         working_key => $self->retrieve_data('working_key')
     );
 
-    my $response = $ccavenue->decrypt($enc_response);
+    my $response = $ccavenue->decrypt($encResp);
 
     # my $working_key = $self->retrieve_data('working_Key');
     # my @plainText = $self->decrypt($working_key,$encResp);
