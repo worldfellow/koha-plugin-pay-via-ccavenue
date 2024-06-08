@@ -9,7 +9,7 @@ use base qw(Koha::Plugins::Base);
 ## We will also need to include any Koha libraries we want to access
 
 use C4::Context;
-use C4::Auth qw(get_template_and_user);
+use C4::Auth qw(checkauth get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
 use List::Util qw(sum);
@@ -295,7 +295,7 @@ sub configure {
             payment_url => $self->retrieve_data('payment_url'),
             merchant_id => $self->retrieve_data('merchant_id'),
             access_code => $self->retrieve_data('access_code'),
-            working_Key => $self->retrieve_data('working_Key'),
+            working_Key => $self->retrieve_data('working_Key')
         );
 
         print $cgi->header();
@@ -308,7 +308,7 @@ sub configure {
                 payment_url=> $cgi->param('payment_url'),
                 merchant_id => $cgi->param('merchant_id'),
                 access_code => $cgi->param('access_code'),
-                working_Key => $cgi->param('working_Key'),
+                working_Key => $cgi->param('working_Key')
             }
         );
         $self->go_home();
