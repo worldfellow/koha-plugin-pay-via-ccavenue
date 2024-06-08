@@ -196,14 +196,14 @@ sub opac_online_payment_end {
 	    my ( $key, $value ) = split('=', $paramsVal);
         $sel_param->{$key} => $value;
 	}
-    my $borrowernumber = $sel_param{merchant_param1};
-    my $accountline_ids = $sel_param{merchant_param2};
-    my $token = $sel_param{merchant_param3};
+    my $borrowernumber = $sel_param->{merchant_param1};
+    my $accountline_ids = $sel_param->{merchant_param2};
+    my $token = $sel_param->{merchant_param3};
 
     my $transaction_status = $sel_param->{order_status};
     my $transaction_id = $sel_param->{tracking_id};
     # my $transaction_result_message = $vars{transactionResultMessage};
-    my $order_amount =$sel_param{mer_amount};
+    my $order_amount =$sel_param->{mer_amount};
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     my $dbh      = C4::Context->dbh;
     my $query    = "SELECT * FROM $table WHERE token = ?";
