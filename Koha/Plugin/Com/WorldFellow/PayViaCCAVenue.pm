@@ -191,10 +191,10 @@ sub opac_online_payment_end {
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
     my @params = split('&', $plainText);
     
-    my %sel_param = {};
+    my $sel_param = {};
     foreach my $paramsVal (@params) {
 	    my ( $key, $value ) = split('=', $paramsVal);
-        %sel_param->{$key} => $value;
+        $sel_param->{$key} => $value;
 	}
     my $borrowernumber = $sel_param{merchant_param1};
     my $accountline_ids = $sel_param{merchant_param2};
