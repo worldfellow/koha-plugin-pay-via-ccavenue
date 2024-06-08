@@ -53,7 +53,8 @@ sub new {
 sub opac_online_payment {
     my ( $self, $args ) = @_;
     try{
-        return $self->retrieve_data('enable_opac_payments') eq 'Yes';
+        my $userid   = checkauth( CGI->new, 0, {}, 'opac' );
+        return $self->retrieve_data('enable_opac_payments') eq 'Yes' && $userid;
     }catch{
         warn "opac online payment"
     }
@@ -182,6 +183,7 @@ sub opac_online_payment_end {
             is_plugin       => 1,
         }
     );
+    
     my $encResp = $cgi->param("encResp"); 
     my $working_key = $self->retrieve_data('working_Key');
     my $plainText = $self->decrypt($working_key,$encResp);
@@ -209,6 +211,7 @@ sub opac_online_payment_end {
     my $accountlines = [ split( ',', $accountline_ids ) ];
 
     my ( $m, $v );
+
     if ( $logged_in_borrowernumber ne $borrowernumber ) {
         $m = 'not_same_patron';
         $v = $transaction_id;
