@@ -54,7 +54,7 @@ sub opac_online_payment {
     my ( $self, $args ) = @_;
     try{
         my $userid   = checkauth( CGI->new, 0, {}, 'opac' );
-        return $self->retrieve_data('enable_opac_payments') eq 'Yes' && $userid;
+        return $self->retrieve_data('enable_opac_payments') eq 'Yes';
     }catch{
         warn "opac online payment"
     }
@@ -193,8 +193,8 @@ sub opac_online_payment_end {
     
     my $sel_param = {};
     foreach my $paramsVal (@params) {
-	    my ( $key, $value ) = split('=', $paramsVal);
-        $sel_param->{$key} => $value;
+	    my ($key, $value) = split('=', $paramsVal);
+        $sel_param->{$key} = $value;
 	}
     my $borrowernumber = $sel_param->{merchant_param1};
     my $accountline_ids = $sel_param->{merchant_param2};
