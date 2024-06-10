@@ -66,14 +66,13 @@ sub opac_online_payment_begin {
     my $cgi = $self->{'cgi'};
 
     my $active_currency = Koha::Acquisition::Currencies->get_active;
-    warn $active_currency;
-
+    
     my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_request.tt'),
             query           => $cgi,
             type            => 'opac',
-            authnotrequired => 0,
+            authnotrequired => 1,
             is_plugin       => 1,
         }
     );
@@ -182,7 +181,7 @@ sub opac_online_payment_end {
             template_name   => $self->mbf_path('opac_payment_response.tt'),
             query           => $cgi,
             type            => 'opac',
-            authnotrequired => 0,
+            authnotrequired => 1,
             is_plugin       => 1,
         }
     );
