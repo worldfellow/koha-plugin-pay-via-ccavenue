@@ -9,7 +9,6 @@ use base qw(Koha::Plugins::Base);
 ## We will also need to include any Koha libraries we want to access
 
 use C4::Context;
-use C4::Output qw(output_html_with_http_headers);
 use C4::Auth qw(checkauth get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
@@ -66,13 +65,14 @@ sub opac_online_payment_begin {
     my $cgi = $self->{'cgi'};
 
     my $active_currency = Koha::Acquisition::Currencies->get_active;
-    
-    my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
+    warn $active_currency;
+
+    my ( $template, $borrowernumber ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_request.tt'),
             query           => $cgi,
             type            => 'opac',
-            authnotrequired => 1,
+            authnotrequired => 0,
             is_plugin       => 1,
         }
     );
@@ -107,10 +107,9 @@ sub opac_online_payment_begin {
 
     # my $redirect_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl?payment_method=Koha::Plugin::Com::WorldFellow::PayViaCCAVenue";
     my $redirect_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl" );
-   
-    $redirect_url->query_param( $payment_method => 'Koha::Plugin::Com::WorldFellow::PayViaCCAVenue' );
+    $redirect_url->query_form( { payment_method => 'Koha::Plugin::Com::Theke::PayViaPayPal' } );
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
-    my $cancel_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl");
+    my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
@@ -122,11 +121,11 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."currency=";
     $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
     $requestParams = $requestParams."amount=";
-    $requestParams = $requestParams.uri_encode(1.00)."&";
+    $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
     $requestParams = $requestParams."redirect_url=";
-    $requestParams = $requestParams.uri_encode($redirect_url->as_string())."&";
+    $requestParams = $requestParams.uri_encode($redirect_url)."&";
     $requestParams = $requestParams."cancel_url=";
-    $requestParams = $requestParams.uri_encode($cancel_url->as_string())."&";
+    $requestParams = $requestParams.uri_encode($cancel_url)."&";
     $requestParams = $requestParams."language=";
     $requestParams = $requestParams.uri_encode('EN')."&";
     $requestParams = $requestParams."billing_name=";
@@ -148,7 +147,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."merchant_param1=";
     $requestParams = $requestParams.uri_encode($patron->id)."&";
     $requestParams = $requestParams."merchant_param2=";
-    $requestParams = $requestParams.uri_encode($cookie)."&";
+    $requestParams = $requestParams.uri_encode(join( ',', map { $_->id } @accountlines ))."&";
     $requestParams = $requestParams."merchant_param3=";
     $requestParams = $requestParams.uri_encode($token)."&";
     $requestParams = $requestParams."merchant_param4=";
@@ -171,18 +170,18 @@ sub opac_online_payment_begin {
 
     print $cgi->header();
     print $template->output();
-    }
+}
 
 sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
 
-    my ( $template, $logged_in_borrowernumber, $cookie ) = get_template_and_user(
+    my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_response.tt'),
             query           => $cgi,
             type            => 'opac',
-            authnotrequired => 1,
+            authnotrequired => 0,
             is_plugin       => 1,
         }
     );
@@ -211,7 +210,7 @@ sub opac_online_payment_end {
     my $dbh      = C4::Context->dbh;
     my $query    = "SELECT * FROM $table WHERE token = ?";
     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
-    warn $token_hr;
+
     my $accountlines = [ split( ',', $accountline_ids ) ];
 
     my ( $m, $v );
@@ -221,77 +220,53 @@ sub opac_online_payment_end {
         $v = $transaction_id;
     }
     elsif ( $transaction_status eq 'Success' ) { # Success
-        my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
-        # if ($token_hr) {
-        #     my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+        if ($token_hr) {
+            my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
 
-        #     # If this note is found, it must be a duplicate post
-        #     unless (
-        #         Koha::Account::Lines->search( { note => $note } )->count() )
-        #     {
+            # If this note is found, it must be a duplicate post
+            unless (
+                Koha::Account::Lines->search( { note => $note } )->count() )
+            {
 
-        #         my $patron  = Koha::Patrons->find($borrowernumber);
-        #         my $account = $patron->account;
+                my $patron  = Koha::Patrons->find($borrowernumber);
+                my $account = $patron->account;
 
-        #         my $schema = Koha::Database->new->schema;
+                my $schema = Koha::Database->new->schema;
 
-        #         my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
-        #         my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-        #         $schema->txn_do(
-        #             sub {
-        #                 $dbh->do(qq{
-        #                     DELETE FROM $table WHERE token = ?},
-        #                     undef, $token
-        #                 );
+                my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
+                my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+                $schema->txn_do(
+                    sub {
+                        $dbh->do(qq{
+                            DELETE FROM $table WHERE token = ?},
+                            undef, $token
+                        );
 
-        #                 $account->pay(
-        #                     {
-        #                         amount     => $order_amount,
-        #                         note       => $note,
-        #                         library_id => $patron->branchcode,
-        #                         lines      => \@lines,
-        #                     }
-        #                 );
-        #             }
-        #         );
+                        $account->pay(
+                            {
+                                amount     => $order_amount,
+                                note       => $note,
+                                library_id => $patron->branchcode,
+                                lines      => \@lines,
+                            }
+                        );
+                    }
+                );
 
-        #         $m = 'valid_payment';
-        #         $v = $order_amount;
-        #     }
-        #     else {
-        #         $m = 'duplicate_payment';
-        #         $v = $transaction_id;
-        #     }
-        # }
-        if($token == $token_hr){
-            my $patron  = Koha::Patrons->find($borrowernumber);
-            my $account = $patron->account;
-            my $schema = Koha::Database->new->schema;
-            my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
-            my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-            $schema->txn_do(
-                sub {
-                    $dbh->do(qq{
-                        DELETE FROM $table WHERE token = ?},
-                        undef, $token
-                    );
-                    $account->pay({
-                        amount     => $order_amount,
-                        note       => $note,
-                        library_id => $patron->branchcode,
-                        lines      => \@lines,
-                    });
-                }
-            );
-            $m = 'valid_payment';
-            $v = $order_amount;
+                $m = 'valid_payment';
+                $v = $order_amount;
+            }
+            else {
+                $m = 'duplicate_payment';
+                $v = $transaction_id;
+            }
         }
-
         else {
             $m = 'invalid_token';
             $v = $transaction_id;
         }
-    }else {
+    }
+    else {
         # 1 = Accepted credit card payment/refund (successful)
         # 2 = Rejected credit card payment/refund (declined)
         # 3 - Error credit card payment/refund (error)
@@ -304,115 +279,10 @@ sub opac_online_payment_end {
         message       => $m,
         message_value => $v,
     );
-    my $error = 0;
-    
-    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
+
+    print $cgi->header();
+    print $template->output();
 }
-
-# sub opac_online_payment_end {
-#     my ( $self, $args ) = @_;
-#     my $cgi = $self->{'cgi'};
-
-#     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
-#         {
-#             template_name   => $self->mbf_path('opac_payment_response.tt'),
-#             query           => $cgi,
-#             type            => 'opac',
-#             authnotrequired => 0,
-#             is_plugin       => 1,
-#         }
-#     );
-
-#     my $encResp = $cgi->param("encResp");
-#     my $working_key = $self->retrieve_data('working_Key');
-#     my $plainText = $self->decrypt($working_key, $encResp);
-
-#     my @params = split('&', $plainText);
-#     my %sel_param = map { split('=', $_, 2) } @params;
-    
-#     my $borrowernumber = $sel_param{merchant_param1};
-#     my $accountline_ids = $sel_param{merchant_param2};
-#     my $token = $sel_param{merchant_param3};
-#     my $transaction_status = $sel_param{order_status};
-#     my $transaction_id = $sel_param{tracking_id};
-#     my $order_amount = $sel_param{mer_amount};
-    
-#     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-#     my $dbh = C4::Context->dbh;
-#     my $query = "SELECT * FROM $table WHERE token = ?";
-#     my $token_hr = $dbh->selectrow_hashref($query, undef, $token);
-#     my $accountlines = [ split(',', $accountline_ids) ];
-
-#     my ( $m, $v );
-
-#     if ($transaction_status eq 'Success' && $token_hr) {
-#         my $note = "Paid via CCAVenue: " . sha256_hex($transaction_id);
-
-#         unless (Koha::Account::Lines->search({ note => $note })->count()) {
-#             my $patron = Koha::Patrons->find($borrowernumber);
-#             my $account = $patron->account;
-#             my $schema = Koha::Database->new->schema;
-
-#             my @lines = Koha::Account::Lines->search({ accountlines_id => { -in => $accountlines } })->as_list;
-
-#             $schema->txn_do(
-#                 sub {
-#                     $dbh->do(qq{DELETE FROM $table WHERE token = ?}, undef, $token);
-#                     $account->pay({
-#                         amount => $order_amount,
-#                         note => $note,
-#                         library_id => $patron->branchcode,
-#                         lines => \@lines,
-#                     });
-#                 }
-#             );
-
-#             $m = 'valid_payment';
-#             $v = $order_amount;
-#         } else {
-#             $m = 'duplicate_payment';
-#             $v = $transaction_id;
-#         }
-#     } else {
-#         $m = 'payment_failed';
-#         $v = $transaction_id;
-#     }
-
-#     my $session_id;
-#     if ($logged_in_borrowernumber ne $borrowernumber) {
-#         ($m, $v) = ('not_same_patron', $transaction_id);
-#     } else {
-#         my $patron = Koha::Patrons->find($borrowernumber);
-#         my $session = C4::Auth::new_session($patron->userid);
-#         $session_id = $session->id;
-#     }
-
-#     $template->param(
-#         borrower => scalar Koha::Patrons->find($borrowernumber),
-#         message => $m,
-#         message_value => $v,
-#         session_id => $session_id,
-#     );
-
-#     my $redirect_url = "/cgi-bin/koha/opac-user.pl";
-#     if ($session_id) {
-#         use CGI::Cookie;
-#         my $cookie = CGI::Cookie->new(
-#             -name => 'CGISESSID',
-#             -value => $session_id,
-#             -expires => '+1h',
-#             -path => '/',
-#             -domain => C4::Context->preference('cookie_domain')
-#         );
-
-#         print $cgi->redirect(
-#             -uri => $redirect_url,
-#             -cookie => [$cookie]
-#         );
-#     } else {
-#         print $cgi->redirect($redirect_url);
-#     }
-# }
 
 sub configure {
     my ( $self, $args ) = @_;
