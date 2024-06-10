@@ -9,6 +9,7 @@ use base qw(Koha::Plugins::Base);
 ## We will also need to include any Koha libraries we want to access
 
 use C4::Context;
+use C4::Output qw(output_html_with_http_headers);
 use C4::Auth qw(checkauth get_template_and_user);
 use Koha::Account;
 use Koha::Account::Lines;
@@ -54,7 +55,6 @@ sub new {
 sub opac_online_payment {
     my ( $self, $args ) = @_;
     try{
-        my $userid   = checkauth( CGI->new, 0, {}, 'opac' );
         return $self->retrieve_data('enable_opac_payments') eq 'Yes';
     }catch{
         warn "opac online payment"
@@ -68,7 +68,7 @@ sub opac_online_payment_begin {
     my $active_currency = Koha::Acquisition::Currencies->get_active;
     warn $active_currency;
 
-    my ( $template, $borrowernumber ) = get_template_and_user(
+    my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_request.tt'),
             query           => $cgi,
@@ -151,7 +151,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."merchant_param1=";
     $requestParams = $requestParams.uri_encode($patron->id)."&";
     $requestParams = $requestParams."merchant_param2=";
-    $requestParams = $requestParams.uri_encode(join( ',', map { $_->id } @accountlines ))."&";
+    $requestParams = $requestParams.uri_encode(join( ',', { $_->id } @accountlines ))."&";
     $requestParams = $requestParams."merchant_param3=";
     $requestParams = $requestParams.uri_encode($token)."&";
     $requestParams = $requestParams."merchant_param4=";
@@ -172,8 +172,7 @@ sub opac_online_payment_begin {
         access_code          => $self->retrieve_data('access_code')
     );
 
-    print $cgi->header();
-    print $template->output();
+    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } );
 }
 
 sub opac_online_payment_end {
@@ -190,6 +189,7 @@ sub opac_online_payment_end {
         }
     );
     
+    my %vars = $cgi->Vars();
     my $encResp = $cgi->param("encResp"); 
     my $working_key = $self->retrieve_data('working_Key');
     my $plainText = $self->decrypt($working_key,$encResp);
@@ -202,6 +202,7 @@ sub opac_online_payment_end {
 	    my ($key, $value) = split('=', $paramsVal);
         $sel_param->{$key} = $value;
 	}
+    
     my $borrowernumber = $sel_param->{merchant_param1};
     my $accountline_ids = $sel_param->{merchant_param2};
     my $token = $sel_param->{merchant_param3};
@@ -284,8 +285,7 @@ sub opac_online_payment_end {
         message_value => $v,
     );
 
-    print $cgi->header();
-    print $template->output();
+    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } );
 }
 
 sub configure {
