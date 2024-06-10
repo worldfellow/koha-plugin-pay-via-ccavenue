@@ -280,7 +280,8 @@ sub opac_online_payment_end {
         message       => $m,
         message_value => $v,
     );
-
+    my $error = 0;
+    
     output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
 }
 
