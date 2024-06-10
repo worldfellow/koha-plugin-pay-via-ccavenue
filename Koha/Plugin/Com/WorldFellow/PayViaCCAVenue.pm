@@ -172,6 +172,118 @@ sub opac_online_payment_begin {
     print $template->output();
 }
 
+# sub opac_online_payment_end {
+#     my ( $self, $args ) = @_;
+#     my $cgi = $self->{'cgi'};
+
+#     my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
+#         {
+#             template_name   => $self->mbf_path('opac_payment_response.tt'),
+#             query           => $cgi,
+#             type            => 'opac',
+#             authnotrequired => 0,
+#             is_plugin       => 1,
+#         }
+#     );
+    
+#     my $encResp = $cgi->param("encResp"); 
+#     my $working_key = $self->retrieve_data('working_Key');
+#     my $plainText = $self->decrypt($working_key,$encResp);
+
+#     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
+#     my @params = split('&', $plainText);
+    
+#     my $sel_param = {};
+#     foreach my $paramsVal (@params) {
+# 	    my ($key, $value) = split('=', $paramsVal);
+#         $sel_param->{$key} = $value;
+# 	}
+#     my $borrowernumber = $sel_param->{merchant_param1};
+#     my $accountline_ids = $sel_param->{merchant_param2};
+#     my $token = $sel_param->{merchant_param3};
+
+#     my $transaction_status = $sel_param->{order_status};
+#     my $transaction_id = $sel_param->{tracking_id};
+#     # my $transaction_result_message = $vars{transactionResultMessage};
+#     my $order_amount =$sel_param->{mer_amount};
+#     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+#     my $dbh      = C4::Context->dbh;
+#     my $query    = "SELECT * FROM $table WHERE token = ?";
+#     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
+
+#     my $accountlines = [ split( ',', $accountline_ids ) ];
+
+#     my ( $m, $v );
+
+#     if ( $logged_in_borrowernumber ne $borrowernumber ) {
+#         $m = 'not_same_patron';
+#         $v = $transaction_id;
+#     }
+#     elsif ( $transaction_status eq 'Success' ) { # Success
+#         if ($token_hr) {
+#             my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+
+#             # If this note is found, it must be a duplicate post
+#             unless (
+#                 Koha::Account::Lines->search( { note => $note } )->count() )
+#             {
+
+#                 my $patron  = Koha::Patrons->find($borrowernumber);
+#                 my $account = $patron->account;
+
+#                 my $schema = Koha::Database->new->schema;
+
+#                 my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
+#                 my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+#                 $schema->txn_do(
+#                     sub {
+#                         $dbh->do(qq{
+#                             DELETE FROM $table WHERE token = ?},
+#                             undef, $token
+#                         );
+
+#                         $account->pay(
+#                             {
+#                                 amount     => $order_amount,
+#                                 note       => $note,
+#                                 library_id => $patron->branchcode,
+#                                 lines      => \@lines,
+#                             }
+#                         );
+#                     }
+#                 );
+
+#                 $m = 'valid_payment';
+#                 $v = $order_amount;
+#             }
+#             else {
+#                 $m = 'duplicate_payment';
+#                 $v = $transaction_id;
+#             }
+#         }
+#         else {
+#             $m = 'invalid_token';
+#             $v = $transaction_id;
+#         }
+#     }
+#     else {
+#         # 1 = Accepted credit card payment/refund (successful)
+#         # 2 = Rejected credit card payment/refund (declined)
+#         # 3 - Error credit card payment/refund (error)
+#         $m = 'payment_failed';
+#         $v = $transaction_id;
+#     }
+
+#     $template->param(
+#         borrower      => scalar Koha::Patrons->find($borrowernumber),
+#         message       => $m,
+#         message_value => $v,
+#     );
+
+#     print $cgi->header();
+#     print $template->output();
+# }
+
 sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
@@ -185,103 +297,96 @@ sub opac_online_payment_end {
             is_plugin       => 1,
         }
     );
-    
-    my $encResp = $cgi->param("encResp"); 
+
+    my $encResp = $cgi->param("encResp");
     my $working_key = $self->retrieve_data('working_Key');
-    my $plainText = $self->decrypt($working_key,$encResp);
+    my $plainText = $self->decrypt($working_key, $encResp);
 
-    #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
     my @params = split('&', $plainText);
+    my %sel_param = map { split('=', $_, 2) } @params;
     
-    my $sel_param = {};
-    foreach my $paramsVal (@params) {
-	    my ($key, $value) = split('=', $paramsVal);
-        $sel_param->{$key} = $value;
-	}
-    my $borrowernumber = $sel_param->{merchant_param1};
-    my $accountline_ids = $sel_param->{merchant_param2};
-    my $token = $sel_param->{merchant_param3};
-
-    my $transaction_status = $sel_param->{order_status};
-    my $transaction_id = $sel_param->{tracking_id};
-    # my $transaction_result_message = $vars{transactionResultMessage};
-    my $order_amount =$sel_param->{mer_amount};
+    my $borrowernumber = $sel_param{merchant_param1};
+    my $accountline_ids = $sel_param{merchant_param2};
+    my $token = $sel_param{merchant_param3};
+    my $transaction_status = $sel_param{order_status};
+    my $transaction_id = $sel_param{tracking_id};
+    my $order_amount = $sel_param{mer_amount};
+    
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-    my $dbh      = C4::Context->dbh;
-    my $query    = "SELECT * FROM $table WHERE token = ?";
-    my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
-
-    my $accountlines = [ split( ',', $accountline_ids ) ];
+    my $dbh = C4::Context->dbh;
+    my $query = "SELECT * FROM $table WHERE token = ?";
+    my $token_hr = $dbh->selectrow_hashref($query, undef, $token);
+    my $accountlines = [ split(',', $accountline_ids) ];
 
     my ( $m, $v );
 
-    if ( $logged_in_borrowernumber ne $borrowernumber ) {
-        $m = 'not_same_patron';
-        $v = $transaction_id;
-    }
-    elsif ( $transaction_status eq 'Success' ) { # Success
-        if ($token_hr) {
-            my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+    if ($transaction_status eq 'Success' && $token_hr) {
+        my $note = "Paid via CCAVenue: " . sha256_hex($transaction_id);
 
-            # If this note is found, it must be a duplicate post
-            unless (
-                Koha::Account::Lines->search( { note => $note } )->count() )
-            {
+        unless (Koha::Account::Lines->search({ note => $note })->count()) {
+            my $patron = Koha::Patrons->find($borrowernumber);
+            my $account = $patron->account;
+            my $schema = Koha::Database->new->schema;
 
-                my $patron  = Koha::Patrons->find($borrowernumber);
-                my $account = $patron->account;
+            my @lines = Koha::Account::Lines->search({ accountlines_id => { -in => $accountlines } })->as_list;
 
-                my $schema = Koha::Database->new->schema;
+            $schema->txn_do(
+                sub {
+                    $dbh->do(qq{DELETE FROM $table WHERE token = ?}, undef, $token);
+                    $account->pay({
+                        amount => $order_amount,
+                        note => $note,
+                        library_id => $patron->branchcode,
+                        lines => \@lines,
+                    });
+                }
+            );
 
-                my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
-                my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-                $schema->txn_do(
-                    sub {
-                        $dbh->do(qq{
-                            DELETE FROM $table WHERE token = ?},
-                            undef, $token
-                        );
-
-                        $account->pay(
-                            {
-                                amount     => $order_amount,
-                                note       => $note,
-                                library_id => $patron->branchcode,
-                                lines      => \@lines,
-                            }
-                        );
-                    }
-                );
-
-                $m = 'valid_payment';
-                $v = $order_amount;
-            }
-            else {
-                $m = 'duplicate_payment';
-                $v = $transaction_id;
-            }
-        }
-        else {
-            $m = 'invalid_token';
+            $m = 'valid_payment';
+            $v = $order_amount;
+        } else {
+            $m = 'duplicate_payment';
             $v = $transaction_id;
         }
-    }
-    else {
-        # 1 = Accepted credit card payment/refund (successful)
-        # 2 = Rejected credit card payment/refund (declined)
-        # 3 - Error credit card payment/refund (error)
+    } else {
         $m = 'payment_failed';
         $v = $transaction_id;
     }
 
+    my $session_id;
+    if ($logged_in_borrowernumber ne $borrowernumber) {
+        ($m, $v) = ('not_same_patron', $transaction_id);
+    } else {
+        my $patron = Koha::Patrons->find($borrowernumber);
+        my $session = C4::Auth::new_session($patron->userid);
+        $session_id = $session->id;
+    }
+
     $template->param(
-        borrower      => scalar Koha::Patrons->find($borrowernumber),
-        message       => $m,
+        borrower => scalar Koha::Patrons->find($borrowernumber),
+        message => $m,
         message_value => $v,
+        session_id => $session_id,
     );
 
-    print $cgi->header();
-    print $template->output();
+    my $redirect_url = "/cgi-bin/koha/opac-user.pl";
+    if ($session_id) {
+        use CGI::Cookie;
+        my $cookie = CGI::Cookie->new(
+            -name => 'CGISESSID',
+            -value => $session_id,
+            -expires => '+1h',
+            -path => '/',
+            -domain => C4::Context->preference('cookie_domain')
+        );
+
+        print $cgi->redirect(
+            -uri => $redirect_url,
+            -cookie => [$cookie]
+        );
+    } else {
+        print $cgi->redirect($redirect_url);
+    }
 }
 
 sub configure {
