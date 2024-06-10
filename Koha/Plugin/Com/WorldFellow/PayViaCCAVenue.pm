@@ -210,7 +210,7 @@ sub opac_online_payment_end {
     my $dbh      = C4::Context->dbh;
     my $query    = "SELECT * FROM $table WHERE token = ?";
     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
-
+    warn $token_hr;
     my $accountlines = [ split( ',', $accountline_ids ) ];
 
     my ( $m, $v );
@@ -220,53 +220,77 @@ sub opac_online_payment_end {
         $v = $transaction_id;
     }
     elsif ( $transaction_status eq 'Success' ) { # Success
-        if ($token_hr) {
-            my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+        my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+        # if ($token_hr) {
+        #     my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
 
-            # If this note is found, it must be a duplicate post
-            unless (
-                Koha::Account::Lines->search( { note => $note } )->count() )
-            {
+        #     # If this note is found, it must be a duplicate post
+        #     unless (
+        #         Koha::Account::Lines->search( { note => $note } )->count() )
+        #     {
 
-                my $patron  = Koha::Patrons->find($borrowernumber);
-                my $account = $patron->account;
+        #         my $patron  = Koha::Patrons->find($borrowernumber);
+        #         my $account = $patron->account;
 
-                my $schema = Koha::Database->new->schema;
+        #         my $schema = Koha::Database->new->schema;
 
-                my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
-                my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-                $schema->txn_do(
-                    sub {
-                        $dbh->do(qq{
-                            DELETE FROM $table WHERE token = ?},
-                            undef, $token
-                        );
+        #         my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
+        #         my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+        #         $schema->txn_do(
+        #             sub {
+        #                 $dbh->do(qq{
+        #                     DELETE FROM $table WHERE token = ?},
+        #                     undef, $token
+        #                 );
 
-                        $account->pay(
-                            {
-                                amount     => $order_amount,
-                                note       => $note,
-                                library_id => $patron->branchcode,
-                                lines      => \@lines,
-                            }
-                        );
-                    }
-                );
+        #                 $account->pay(
+        #                     {
+        #                         amount     => $order_amount,
+        #                         note       => $note,
+        #                         library_id => $patron->branchcode,
+        #                         lines      => \@lines,
+        #                     }
+        #                 );
+        #             }
+        #         );
 
-                $m = 'valid_payment';
-                $v = $order_amount;
-            }
-            else {
-                $m = 'duplicate_payment';
-                $v = $transaction_id;
-            }
+        #         $m = 'valid_payment';
+        #         $v = $order_amount;
+        #     }
+        #     else {
+        #         $m = 'duplicate_payment';
+        #         $v = $transaction_id;
+        #     }
+        # }
+        if($token == $token_hr){
+            my $patron  = Koha::Patrons->find($borrowernumber);
+            my $account = $patron->account;
+            my $schema = Koha::Database->new->schema;
+            my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
+            my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+            $schema->txn_do(
+                sub {
+                    $dbh->do(qq{
+                        DELETE FROM $table WHERE token = ?},
+                        undef, $token
+                    );
+                    $account->pay({
+                        amount     => $order_amount,
+                        note       => $note,
+                        library_id => $patron->branchcode,
+                        lines      => \@lines,
+                    });
+                }
+            );
+            $m = 'valid_payment';
+            $v = $order_amount;
         }
+
         else {
             $m = 'invalid_token';
             $v = $transaction_id;
         }
-    }
-    else {
+    }else {
         # 1 = Accepted credit card payment/refund (successful)
         # 2 = Rejected credit card payment/refund (declined)
         # 3 - Error credit card payment/refund (error)
