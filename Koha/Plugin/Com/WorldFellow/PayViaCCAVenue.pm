@@ -107,7 +107,8 @@ sub opac_online_payment_begin {
 
     # my $redirect_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl?payment_method=Koha::Plugin::Com::WorldFellow::PayViaCCAVenue";
     my $redirect_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl" );
-    $redirect_url->query_form( { payment_method => 'Koha::Plugin::Com::WorldFellow::PayViaCCAVenue' } );
+   
+    $redirect_url->query_param( $payment_method => 'Koha::Plugin::Com::WorldFellow::PayViaCCAVenue' );
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
     my $cancel_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl");
 
@@ -170,7 +171,7 @@ sub opac_online_payment_begin {
 
     print $cgi->header();
     print $template->output();
-}
+    }
 
 sub opac_online_payment_end {
     my ( $self, $args ) = @_;
