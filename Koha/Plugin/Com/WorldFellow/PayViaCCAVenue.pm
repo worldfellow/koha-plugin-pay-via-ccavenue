@@ -90,29 +90,21 @@ sub opac_online_payment_begin {
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
     C4::Context->dbh->do(
         qq{
-        INSERT INTO $table ( token, borrowernumber )
-        VALUES ( ?, ? )
-    }, undef, $token, $borrowernumber
+            INSERT INTO $table ( token, borrowernumber )
+            VALUES ( ?, ? )
+        }, undef, $token, $borrowernumber
     );
 
-     
-
-    # my $rs = Koha::Database->new()->schema()->resultset('Accountline');
-    # my @accountlines = map { $rs->find($_) } @accountline_ids;
 
     my $amount_to_pay = 0;
-    
+    my $accountline_id="";
     foreach $a (@accountlines) {
         $amount_to_pay = $amount_to_pay + $a->amountoutstanding;
+        $accountline_id = $accountline_id. "," . $a->id;
     }
-
-    # my $param_value = $cgi->param('Koha::Plugin::Com::WorldFellow::PayViaCCAVenue');
-    # my %body_params = ( payment_method => $param_value );
-    # my $json_body = to_json(\%body_params);
-    # my $redirect_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl?payment_method=Koha::Plugin::Com::WorldFellow::PayViaCCAVenue";
+    
     my $redirect_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl" );
     $redirect_url->query_form( { payment_method => 'Koha::Plugin::Com::WorldFellow::PayViaCCAVenue' } );
-    # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
     my $cancel_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl");
 
     my $dt = DateTime->now();
@@ -151,7 +143,7 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."merchant_param1=";
     $requestParams = $requestParams.uri_encode($patron->id)."&";
     $requestParams = $requestParams."merchant_param2=";
-    $requestParams = $requestParams.uri_encode(join( ',', { $_->id } @accountlines ))."&";
+    $requestParams = $requestParams.uri_encode($accountline_id)."&";
     $requestParams = $requestParams."merchant_param3=";
     $requestParams = $requestParams.uri_encode($token)."&";
     $requestParams = $requestParams."merchant_param4=";
@@ -216,7 +208,7 @@ sub opac_online_payment_end {
     my $query    = "SELECT * FROM $table WHERE token = ?";
     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
 
-    my $accountlines = [ split( ',', $accountline_ids ) ];
+    my $accountlines = split( ',', $accountline_ids );
 
     my ( $m, $v );
 
