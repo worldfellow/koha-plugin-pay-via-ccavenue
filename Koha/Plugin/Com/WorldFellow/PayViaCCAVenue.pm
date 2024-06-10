@@ -107,9 +107,9 @@ sub opac_online_payment_begin {
 
     # my $redirect_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl?payment_method=Koha::Plugin::Com::WorldFellow::PayViaCCAVenue";
     my $redirect_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account-pay-return.pl" );
-    $redirect_url->query_form( { payment_method => 'Koha::Plugin::Com::Theke::PayViaPayPal' } );
+    $redirect_url->query_form( { payment_method => 'Koha::Plugin::Com::WorldFellow::PayViaCCAVenue' } );
     # my $redirectUrlParameters = "transactionType,transactionStatus,transactionId,transactionResultCode,transactionResultMessage,orderAmount,userChoice1,userChoice2,userChoice3";
-    my $cancel_url = C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
+    my $cancel_url = URI->new( C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl");
 
     my $dt = DateTime->now();
     my $transaction_id = $patron->cardnumber."Y".$dt->year."M".$dt->month."D".$dt->day."T".$dt->hour.$dt->minute.$dt->second;
@@ -121,11 +121,11 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."currency=";
     $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
     $requestParams = $requestParams."amount=";
-    $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
+    $requestParams = $requestParams.uri_encode(1.00)."&";
     $requestParams = $requestParams."redirect_url=";
-    $requestParams = $requestParams.uri_encode($redirect_url)."&";
+    $requestParams = $requestParams.uri_encode($redirect_url->as_string())."&";
     $requestParams = $requestParams."cancel_url=";
-    $requestParams = $requestParams.uri_encode($cancel_url)."&";
+    $requestParams = $requestParams.uri_encode($cancel_url->as_string())."&";
     $requestParams = $requestParams."language=";
     $requestParams = $requestParams.uri_encode('EN')."&";
     $requestParams = $requestParams."billing_name=";
