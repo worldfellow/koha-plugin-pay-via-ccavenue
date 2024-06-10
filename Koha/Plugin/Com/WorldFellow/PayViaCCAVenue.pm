@@ -171,7 +171,7 @@ sub opac_online_payment_end {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
 
-    my ( $template, $logged_in_borrowernumber ) = get_template_and_user(
+    my ( $template, $logged_in_borrowernumber, $cookie ) = get_template_and_user(
         {
             template_name   => $self->mbf_path('opac_payment_response.tt'),
             query           => $cgi,
