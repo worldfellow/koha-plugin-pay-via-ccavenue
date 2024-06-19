@@ -235,7 +235,7 @@ sub opac_online_payment_end {
                 $schema->txn_do(
                     sub {
                         $dbh->do(qq{
-                            DELETE FROM $table WHERE token = ?},
+                            UPDATE $table SET accountline_ids=$accountline_ids, transaction_status=$transaction_status,transaction_id=$transaction_id, order_amount=$order_amount WHERE token = ?},
                             undef, $token
                         );
 
@@ -323,6 +323,10 @@ sub install {
                 token          VARCHAR(128),
                 created_on     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 borrowernumber INT(11) NOT NULL,
+                order_amount   Decimal(2,2),
+                accountline_ids  TEXT,
+                transaction_status VARCHAr(128),
+                transaction_id TEXT,
                 PRIMARY KEY (token),
                 CONSTRAINT token_bn FOREIGN KEY (borrowernumber) REFERENCES borrowers (
                 borrowernumber ) ON DELETE CASCADE ON UPDATE CASCADE
@@ -339,9 +343,10 @@ sub install {
 }
 
 sub uninstall() {
-    my ( $self, $args ) = @_;
-    my $table = $self->get_qualified_table_name('pay_via_ccavenue');
-    return C4::Context->dbh->do(qq{DROP TABLE IF EXISTS $table});
+    # my ( $self, $args ) = @_;
+    # my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+    # return C4::Context->dbh->do(qq{DROP TABLE IF EXISTS $table});
+    return 1;
 }
 
 # Encryption Function
