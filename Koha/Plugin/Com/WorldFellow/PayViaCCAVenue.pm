@@ -218,7 +218,7 @@ sub opac_online_payment_end {
     }
     elsif ( $transaction_status eq 'Success' ) { # Success
         if ($token_hr) {
-            my $note = "Paid via CCAVenue: " . sha256_hex( $transaction_id );
+            my $note = "Paid via CCAVenue: " . $transaction_id ;
 
             # If this note is found, it must be a duplicate post
             unless (
