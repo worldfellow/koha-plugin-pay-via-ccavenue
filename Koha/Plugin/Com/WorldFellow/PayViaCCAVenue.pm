@@ -196,13 +196,17 @@ sub opac_online_payment_end {
 	    my ($key, $value) = split('=', $paramsVal);
         $sel_param->{$key} = $value;
 	}
-    
+    warn $sel_param;
     my $borrowernumber = $sel_param->{merchant_param1};
+    warn $borrowernumber;
     my $accountline_ids = $sel_param->{merchant_param2};
+    warn $accountline_ids;
     my $token = $sel_param->{merchant_param3};
-
+    warn $token;
     my $transaction_status = $sel_param->{order_status};
+    warn $transaction_status;
     my $transaction_id = $sel_param->{tracking_id};
+     warn $transaction_id;
     # my $transaction_result_message = $vars{transactionResultMessage};
     my $order_amount =$sel_param->{mer_amount};
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
