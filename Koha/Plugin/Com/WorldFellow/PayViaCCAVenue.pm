@@ -184,6 +184,7 @@ sub opac_online_payment_end {
     
     my %vars = $cgi->Vars();
     my $encResp = $cgi->param("encResp"); 
+    warn $encResp;
     my $working_key = $self->retrieve_data('working_Key');
     my $plainText = $self->decrypt($working_key,$encResp);
 
