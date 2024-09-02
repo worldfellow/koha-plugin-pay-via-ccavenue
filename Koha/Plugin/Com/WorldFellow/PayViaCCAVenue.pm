@@ -184,10 +184,8 @@ sub opac_online_payment_end {
     
     my %vars = $cgi->Vars();
     my $encResp = $cgi->param("encResp"); 
-    warn $encResp;
     my $working_key = $self->retrieve_data('working_Key');
     my $plainText = $self->decrypt($working_key,$encResp);
- warn $plainText;
     #warn "NELNET INCOMING: " . Data::Dumper::Dumper( \%vars );
     my @params = split('&', $plainText);
     
@@ -196,17 +194,11 @@ sub opac_online_payment_end {
 	    my ($key, $value) = split('=', $paramsVal);
         $sel_param->{$key} = $value;
 	}
-    warn $sel_param;
     my $borrowernumber = $sel_param->{merchant_param1};
-    warn $borrowernumber;
     my $accountline_ids = $sel_param->{merchant_param2};
-    warn $accountline_ids;
     my $token = $sel_param->{merchant_param3};
-    warn $token;
     my $transaction_status = $sel_param->{order_status};
-    warn $transaction_status;
     my $transaction_id = $sel_param->{tracking_id};
-     warn $transaction_id;
     # my $transaction_result_message = $vars{transactionResultMessage};
     my $order_amount =$sel_param->{mer_amount};
     my $table = $self->get_qualified_table_name('pay_via_ccavenue');
@@ -214,10 +206,8 @@ sub opac_online_payment_end {
     my $query    = "SELECT * FROM $table WHERE token = ?";
     my $token_hr = $dbh->selectrow_hashref( $query, undef, $token );
 
-    my $accountlines = split( ',', $accountline_ids );
-    warn $accountlines;
+    my @accountlines = split( ',', $accountline_ids );
     my ( $m, $v );
-    warn $logged_in_borrowernumber;
     if ( $logged_in_borrowernumber ne $borrowernumber ) {
         $m = 'not_same_patron';
         $v = $transaction_id;
@@ -225,7 +215,6 @@ sub opac_online_payment_end {
     elsif ( $transaction_status eq 'Success' ) { # Success
         if ($token_hr) {
             my $note = "Paid via CCAVenue: " . $transaction_id ;
-
             # If this note is found, it must be a duplicate post
             unless (
                 Koha::Account::Lines->search( { note => $note } )->count() )
@@ -233,17 +222,22 @@ sub opac_online_payment_end {
 
                 my $patron  = Koha::Patrons->find($borrowernumber);
                 my $account = $patron->account;
-
                 my $schema = Koha::Database->new->schema;
-
-                my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => $accountlines } } )->as_list;
+                my @lines = Koha::Account::Lines->search( { accountlines_id => { -in => \@accountlines } } )->as_list;
                 my $table = $self->get_qualified_table_name('pay_via_ccavenue');
+
+                 C4::Context->dbh->do(
+                    qq{
+                        UPDATE $table SET accountline_ids='$accountline_ids', transaction_status='$transaction_status', transaction_id='$transaction_id', order_amount='$order_amount' WHERE token = ?
+                    }, undef, $token
+                );
                 $schema->txn_do(
                     sub {
-                        $dbh->do(qq{
-                            UPDATE $table SET accountline_ids='$accountline_ids', transaction_status='$transaction_status',transaction_id=$transaction_id, order_amount=$order_amount WHERE token = ?},
-                            undef, $token
-                        );
+                        # $dbh->do(
+                        #     "UPDATE $table SET accountline_ids=$accountline_ids, transaction_status=$transaction_status,transaction_id=$transaction_id, order_amount=$order_amount WHERE token = ?",
+                        #     undef, $token
+                        # );
+
 
                         $account->pay(
                             {
@@ -251,6 +245,7 @@ sub opac_online_payment_end {
                                 note       => $note,
                                 library_id => $patron->branchcode,
                                 lines      => \@lines,
+                                payment_type => "Online"
                             }
                         );
                     }
