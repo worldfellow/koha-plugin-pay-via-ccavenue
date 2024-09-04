@@ -117,8 +117,8 @@ sub opac_online_payment_begin {
     $requestParams = $requestParams."currency=";
     $requestParams = $requestParams.uri_encode($active_currency->currency)."&";
     $requestParams = $requestParams."amount=";
-    #$requestParams = $requestParams.uri_encode($amount_to_pay)."&";
-    $requestParams = $requestParams.uri_encode(1.00)."&";
+    $requestParams = $requestParams.uri_encode($amount_to_pay)."&";
+    # $requestParams = $requestParams.uri_encode(1.00)."&";
     $requestParams = $requestParams."redirect_url=";
     $requestParams = $requestParams.uri_encode($redirect_url->as_string())."&";
     $requestParams = $requestParams."cancel_url=";
