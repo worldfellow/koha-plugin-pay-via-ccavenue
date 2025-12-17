@@ -3,7 +3,7 @@ package Koha::Plugin::Com::WorldFellow::PayViaCCAVenue;
 use Modern::Perl;
 
 ## Required for all plugins
-use parent qw(Koha::Plugins::Base);
+use base qw(Koha::Plugins::Base);
 
 
 ## We will also need to include any Koha libraries we want to access
